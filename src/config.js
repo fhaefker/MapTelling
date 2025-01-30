@@ -5,7 +5,7 @@ var config = {
     markerColor: '#3FB1CE',
     inset: true,
     theme: 'light',
-    use3dTerrain: true,
+    use3dTerrain: true, // 3D-Terrain aktivieren
     auto: false,
     title: 'Cape Wrath Trail: 17 days hiking in Scotland',
     subtitle: 'a story of mud, rain, sun and quite an adventure',

@@ -8,15 +8,12 @@
     <style>
         body { margin: 0; padding: 0; }
         #map { position: absolute; top: 0; bottom: 0; width: 100%; }
-        #toggleControlButton {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            z-index: 1;
-            padding: 10px;
-            background-color: white;
-            border: none;
-            cursor: pointer;
+        .mapboxgl-ctrl-group {
+            display: flex;
+            flex-direction: column;
+        }
+        .mapboxgl-ctrl-group button {
+            margin: 2px;
         }
         a, a:hover, a:visited {
             color: #0071bc;
@@ -51,7 +48,6 @@
 <body>
 
 <div id="map"></div>
-<button id="toggleControlButton">Enable Free Navigation</button>
 <div id="mapInset"></div>
 <div id="story"></div>
 
@@ -60,7 +56,6 @@
 <script src="https://unpkg.com/scrollama"></script>
 <script src="./src/config.js"></script>
 <script>
-var initLoad = true;
 var layerTypes = {
     'fill': ['fill-opacity'],
     'line': ['line-opacity'],
@@ -69,14 +64,7 @@ var layerTypes = {
     'raster': ['raster-opacity'],
     'fill-extrusion': ['fill-extrusion-opacity'],
     'heatmap': ['heatmap-opacity']
-}
-
-var alignments = {
-    'left': 'lefty',
-    'center': 'centered',
-    'right': 'righty',
-    'full': 'fully'
-}
+};
 
 function getLayerPaintType(layer) {
     var layerType = map.getLayer(layer).type;
@@ -91,10 +79,10 @@ function setLayerOpacity(layer) {
 }
 
 // Verwenden Sie den Access Token aus der config.js
-mapboxgl.accessToken = config.MAPBOX_ACCESS_TOKEN;
+mapboxgl.accessToken = config.accessToken;
 const map = new mapboxgl.Map({
     container: 'map',
-    style: 'mapbox://styles/mapbox/streets-v11',
+    style: config.style,
     center: [0, 0],
     zoom: 2
 });
@@ -134,9 +122,61 @@ map.on('load', () => {
     map.keyboard.disable();
     map.doubleClickZoom.disable();
     map.touchZoomRotate.disable();
+
+    // Aktivieren Sie 3D-Terrain, wenn es in der config.js aktiviert ist
+    if (config.use3dTerrain) {
+        map.addSource('mapbox-dem', {
+            'type': 'raster-dem',
+            'url': 'mapbox://mapbox.mapbox-terrain-dem-v1',
+            'tileSize': 512,
+            'maxzoom': 14
+        });
+        map.setTerrain({ 'source': 'mapbox-dem', 'exaggeration': 1.5 });
+    }
 });
 
-// ...existing code for Scrollama and other functionalities...
+// Scrollama setup
+const scroller = scrollama();
+
+scroller
+    .setup({
+        step: '.step',
+        offset: 0.5,
+        debug: false
+    })
+    .onStepEnter(response => {
+        const chapter = config.chapters.find(chap => chap.id === response.element.id);
+        map.flyTo(chapter.location);
+        setLayerOpacity(chapter);
+    });
+
+window.addEventListener('resize', scroller.resize);
+
+// Add navigation controls
+const nav = new mapboxgl.NavigationControl();
+map.addControl(nav, 'top-left');
+
+// Add custom control for free navigation
+class FreeNavigationControl {
+    onAdd(map) {
+        this.map = map;
+        this.container = document.createElement('div');
+        this.container.className = 'mapboxgl-ctrl mapboxgl-ctrl-group';
+        this.button = document.createElement('button');
+        this.button.id = 'toggleControlButton';
+        this.button.innerText = 'Enable Free Navigation';
+        this.button.onclick = toggleMapControl;
+        this.container.appendChild(this.button);
+        return this.container;
+    }
+
+    onRemove() {
+        this.container.parentNode.removeChild(this.container);
+        this.map = undefined;
+    }
+}
+
+map.addControl(new FreeNavigationControl(), 'top-left');
 </script>
 </body>
 </html>
