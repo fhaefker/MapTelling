@@ -66,6 +66,13 @@ var layerTypes = {
     'heatmap': ['heatmap-opacity']
 };
 
+var alignments = {
+    'left': 'lefty',
+    'center': 'centered',
+    'right': 'righty',
+    'full': 'fully'
+}
+
 function getLayerPaintType(layer) {
     var layerType = map.getLayer(layer).type;
     return layerTypes[layerType];
