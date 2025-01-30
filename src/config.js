@@ -49,7 +49,7 @@ var config = {
             callback: '',
             onChapterEnter: [{"layer": "marker-layer",}],
             onChapterExit: [{"layer": "marker-layer"}],
-            "marker": {"coordinates": [-5.26066, 56.77998]}
+            marker: {"coordinates": [-5.26066, 56.77998]}
         },
         {
             id: 'Day02-b_theMud',
@@ -67,31 +67,17 @@ var config = {
             mapAnimation: 'flyTo',
             rotateAnimation: false,
             callback: '',
-            //nachfolgend ChatGPT Lösung
-            onChapterEnter: [
-                {
-                "layer": "marker-layer",
-                "opacity": 1
-                }
-            ],
-            "onChapterExit": [
-                {
-                "layer": "marker-layer",
-                "opacity": 0
-                }
-            ],
-            "marker": {
-              "coordinates": [-5.36124, 56.94596]  
-            }
-        }
-        ,
+            onChapterEnter: [{"layer": "marker-layer", "opacity": 1}],
+            onChapterExit: [{"layer": "marker-layer", "opacity": 0}],
+            marker: {"coordinates": [-5.36124, 56.94596]}
+        },
         {
             id: 'Day02_goldenGrass',
             alignment: 'right',
             hidden: false,
             title: 'A field of golden grass',
             image: './assets/day02.jpg',
-            description: 'This is a photo from day two, approximately 50 km after leaving Fort William. Day two had many wonderful moments (for example, the Hogwarts Steam Train on the aqueduct). It was difficult to select only one picture. But reaching this place, a field of gold, and camping alongside the river was simply too incredible not to share. ',
+            description: 'This is a photo from day two, approximately 50 km after leaving Fort William. Day two had many wonderful moments (for example, the Hogwarts Steam Train on the aqueduct). It was difficult to select only one picture. But reaching this place, a field of gold, and camping alongside the river was simply too incredible not to share.',
             location: {
                 center: [-5.35729, 56.96189],
                 zoom: 12,
@@ -103,8 +89,7 @@ var config = {
             callback: '',
             onChapterEnter: [],
             onChapterExit: []
-        }
-        ,
+        },
         {
             id: 'Day03_InverieBay',
             alignment: 'full',
@@ -124,5 +109,5 @@ var config = {
             onChapterEnter: [],
             onChapterExit: []
         }
-     ]
+    ]
 };
