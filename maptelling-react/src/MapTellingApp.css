@@ -1,0 +1,146 @@
+.map-telling-app {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.map-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 0;
+}
+
+.progress-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #ff6b6b, #4ecdc4);
+  z-index: 1000;
+  transform-origin: left;
+  box-shadow: 0 0 10px rgba(255, 107, 107, 0.5);
+}
+
+.navigation-controls {
+  position: fixed;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(10px);
+  border-radius: 50px;
+  padding: 15px 25px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
+  z-index: 1000;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.nav-buttons {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+}
+
+.nav-btn, .play-pause-btn {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: white;
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 16px;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(5px);
+}
+
+.nav-btn:hover:not(:disabled), .play-pause-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: scale(1.1);
+  box-shadow: 0 4px 20px rgba(255, 255, 255, 0.3);
+}
+
+.nav-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.play-pause-btn {
+  background: linear-gradient(135deg, #ff6b6b, #4ecdc4);
+  width: 55px;
+  height: 55px;
+  font-size: 18px;
+  border: none;
+}
+
+.chapter-dots {
+  display: flex;
+  gap: 12px;
+}
+
+.chapter-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  background: transparent;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.chapter-dot:hover {
+  border-color: #ff6b6b;
+  transform: scale(1.2);
+}
+
+.chapter-dot.active {
+  background: linear-gradient(135deg, #ff6b6b, #4ecdc4);
+  border-color: white;
+  box-shadow: 0 0 15px rgba(255, 107, 107, 0.6);
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+  .navigation-controls {
+    bottom: 20px;
+    padding: 12px 20px;
+    gap: 12px;
+  }
+  
+  .nav-btn, .play-pause-btn {
+    width: 40px;
+    height: 40px;
+    font-size: 14px;
+  }
+  
+  .play-pause-btn {
+    width: 50px;
+    height: 50px;
+    font-size: 16px;
+  }
+  
+  .nav-buttons {
+    gap: 15px;
+  }
+  
+  .chapter-dots {
+    gap: 10px;
+  }
+  
+  .chapter-dot {
+    width: 10px;
+    height: 10px;
+  }
+}
