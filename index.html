@@ -3,45 +3,237 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MapTelling</title>
-    <link href="https://api.mapbox.com/mapbox-gl-js/v2.3.1/mapbox-gl.css" rel="stylesheet">
+    <meta name="description" content="Cape Wrath Trail: 17 days hiking in Scotland - An interactive storytelling map">
+    <meta name="author" content="Frederik Häfker">
+    <meta name="robots" content="index, follow">
+    <title>MapTelling - Cape Wrath Trail Scotland</title>
+    
+    <!-- Preload critical resources -->
+    <link rel="preconnect" href="https://api.mapbox.com">
+    <link rel="preconnect" href="https://d3js.org">
+    <link rel="preconnect" href="https://unpkg.com">
+    
+    <link href="https://api.mapbox.com/mapbox-gl-js/v3.7.0/mapbox-gl.css" rel="stylesheet">
     <style>
-        body { margin: 0; padding: 0; }
-        #map { position: absolute; top: 0; bottom: 0; width: 100%; }
+        :root {
+            --primary-color: #3FB1CE;
+            --background-overlay: rgba(255, 255, 255, 0.95);
+            --border-radius: 8px;
+            --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        * {
+            box-sizing: border-box;
+        }
+        
+        body { 
+            margin: 0; 
+            padding: 0; 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+        }
+        
+        #map { 
+            position: absolute; 
+            top: 0; 
+            bottom: 0; 
+            width: 100%; 
+        }
+        
         .mapboxgl-ctrl-group {
             display: flex;
             flex-direction: column;
+            box-shadow: var(--shadow);
         }
+        
         .mapboxgl-ctrl-group button {
             margin: 2px;
+            transition: all 0.2s ease;
         }
+        
+        .mapboxgl-ctrl-group button:hover {
+            background-color: #f0f0f0;
+        }
+        
         a, a:hover, a:visited {
-            color: #0071bc;
+            color: var(--primary-color);
+            text-decoration: none;
         }
+        
+        a:hover {
+            text-decoration: underline;
+        }
+        
         #mapInset {
-            bottom:50px;
-            right:30px;
+            bottom: 50px;
+            right: 30px;
             height: 180px;
-            width:250px;
-            max-width:100%;
+            width: 250px;
+            max-width: 100%;
             position: fixed;
             z-index: 1;
             opacity: 1;
             transition: opacity 0.5s ease-in-out;
             pointer-events: none;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            overflow: hidden;
         }
+        
         #mapInset .mapboxgl-ctrl-bottom-left{
             display: none;
         }
+        
         @media (max-width: 500px) {
             #mapInset {
                 display: none;
             }
         }
+        
         /* Fix issue on mobile browser where scroll breaks  */
         .mapboxgl-canvas-container.mapboxgl-touch-zoom-rotate.mapboxgl-touch-drag-pan,
         .mapboxgl-canvas-container.mapboxgl-touch-zoom-rotate.mapboxgl-touch-drag-pan .mapboxgl-canvas {
             touch-action: unset;
+        }
+        
+        /* Story styles */
+        #story {
+            position: absolute;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            left: 0;
+            overflow-y: auto;
+            z-index: 1000;
+            pointer-events: none;
+            scroll-behavior: smooth;
+        }
+        
+        .step {
+            pointer-events: auto;
+            margin-bottom: 50vh;
+            max-width: 400px;
+            position: relative;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+        
+        .step > div {
+            background: var(--background-overlay);
+            padding: 2rem;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        
+        .step > div:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.15);
+        }
+        
+        .step.lefty {
+            margin-left: 2rem;
+        }
+        
+        .step.righty {
+            margin-right: 2rem;
+            margin-left: auto;
+        }
+        
+        .step.centered {
+            margin-left: auto;
+            margin-right: auto;
+        }
+        
+        .step.fully {
+            width: calc(100% - 4rem);
+            max-width: none;
+            margin-left: 2rem;
+            margin-right: 2rem;
+        }
+        
+        .step h3 {
+            margin-top: 0;
+            color: #333;
+            font-size: 1.5rem;
+        }
+        
+        .step img {
+            max-width: 100%;
+            height: auto;
+            border-radius: calc(var(--border-radius) / 2);
+            margin: 1rem 0;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        .step p {
+            color: #555;
+            margin-bottom: 0;
+        }
+        
+        .story-header, .story-footer {
+            background: var(--background-overlay);
+            padding: 2rem;
+            text-align: center;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            margin: 1rem 2rem;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+        
+        .story-header h1 {
+            margin: 0 0 0.5rem 0;
+            color: #333;
+            font-size: 2.5rem;
+        }
+        
+        .story-header h2 {
+            margin: 0 0 1rem 0;
+            color: #666;
+            font-weight: 400;
+            font-size: 1.2rem;
+        }
+        
+        .story-footer {
+            font-size: 0.9em;
+            color: #666;
+        }
+        
+        @media (max-width: 768px) {
+            .step {
+                max-width: calc(100% - 2rem);
+                margin-left: 1rem !important;
+                margin-right: 1rem !important;
+            }
+            
+            .story-header, .story-footer {
+                margin: 1rem;
+            }
+            
+            .story-header h1 {
+                font-size: 2rem;
+            }
+        }
+        
+        /* Loading indicator */
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 2000;
+            background: var(--background-overlay);
+            padding: 1rem 2rem;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+        }
+        
+        /* Smooth scrolling for webkit browsers */
+        @media (prefers-reduced-motion: no-preference) {
+            html {
+                scroll-behavior: smooth;
+            }
         }
     </style>
 </head>
@@ -50,13 +242,15 @@
 <div id="map"></div>
 <div id="mapInset"></div>
 <div id="story"></div>
+<div id="loading" class="loading">Loading MapTelling...</div>
 
-<script src="https://api.mapbox.com/mapbox-gl-js/v2.3.1/mapbox-gl.js"></script>
-<script src="https://d3js.org/d3.v5.min.js"></script>
-<script src="https://unpkg.com/scrollama"></script>
+<script src="https://api.mapbox.com/mapbox-gl-js/v3.7.0/mapbox-gl.js"></script>
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<script src="https://unpkg.com/scrollama@3.2.0/build/scrollama.js"></script>
 <script src="./src/config.js"></script>
 <script>
-var layerTypes = {
+// Modern layer opacity handling with better error checking
+const layerTypes = {
     'fill': ['fill-opacity'],
     'line': ['line-opacity'],
     'circle': ['circle-opacity', 'circle-stroke-opacity'],
@@ -66,23 +260,36 @@ var layerTypes = {
     'heatmap': ['heatmap-opacity']
 };
 
-var alignments = {
+const alignments = {
     'left': 'lefty',
     'center': 'centered',
     'right': 'righty',
     'full': 'fully'
-}
+};
 
-function getLayerPaintType(layer) {
-    var layerType = map.getLayer(layer).type;
-    return layerTypes[layerType];
+function getLayerPaintType(layerId) {
+    try {
+        const layer = map.getLayer(layerId);
+        return layer ? layerTypes[layer.type] : null;
+    } catch (error) {
+        console.warn(`Layer ${layerId} not found:`, error);
+        return null;
+    }
 }
 
 function setLayerOpacity(layer) {
-    var paintProps = getLayerPaintType(layer.layer);
-    paintProps.forEach(function(prop) {
-        map.setPaintProperty(layer.layer, prop, layer.opacity);
-    });
+    if (!layer?.layer) return;
+    
+    try {
+        const paintProps = getLayerPaintType(layer.layer);
+        if (paintProps) {
+            paintProps.forEach(prop => {
+                map.setPaintProperty(layer.layer, prop, layer.opacity);
+            });
+        }
+    } catch (error) {
+        console.warn(`Error setting layer opacity for ${layer.layer}:`, error);
+    }
 }
 
 // Verwenden Sie den Access Token aus der config.js
@@ -95,28 +302,43 @@ const map = new mapboxgl.Map({
 });
 
 // Variable to track the current control mode
-let isFixedControl = true;
+let isStoryMode = true;
+let scroller; // Declare scroller variable to access it globally
 
-// Function to toggle map control mode
+// Function to toggle between Story Mode and Free Navigation Mode
 function toggleMapControl() {
-    if (isFixedControl) {
-        // Enable free navigation
+    if (isStoryMode) {
+        // Switch to Free Navigation Mode
         map.scrollZoom.enable();
         map.dragPan.enable();
         map.keyboard.enable();
         map.doubleClickZoom.enable();
         map.touchZoomRotate.enable();
-        document.getElementById('toggleControlButton').innerText = 'Enable Fixed Control';
+        
+        // Disable story scrolling
+        if (scroller) {
+            scroller.disable();
+        }
+        
+        document.getElementById('toggleControlButton').innerText = 'Story Mode';
+        document.getElementById('toggleControlButton').title = 'Switch to automatic story navigation';
     } else {
-        // Disable free navigation
+        // Switch to Story Mode
         map.scrollZoom.disable();
         map.dragPan.disable();
         map.keyboard.disable();
         map.doubleClickZoom.disable();
         map.touchZoomRotate.disable();
-        document.getElementById('toggleControlButton').innerText = 'Enable Free Navigation';
+        
+        // Enable story scrolling
+        if (scroller) {
+            scroller.enable();
+        }
+        
+        document.getElementById('toggleControlButton').innerText = 'Free Navigation';
+        document.getElementById('toggleControlButton').title = 'Switch to free map navigation';
     }
-    isFixedControl = !isFixedControl;
+    isStoryMode = !isStoryMode;
 }
 
 // Add event listener to the button
@@ -134,44 +356,106 @@ map.on('load', () => {
     if (config.use3dTerrain) {
         map.addSource('mapbox-dem', {
             'type': 'raster-dem',
-            'url': 'mapbox://mapbox.mapbox-terrain-dem-v1',
+            'url': 'mapbox://mapbox.terrain-dem-v1',
             'tileSize': 512,
             'maxzoom': 14
         });
         map.setTerrain({ 'source': 'mapbox-dem', 'exaggeration': 1.5 });
     }
+
+    // Create story content from config
+    createStoryContent();
+    
+    // Remove loading indicator
+    const loadingElement = document.getElementById('loading');
+    if (loadingElement) {
+        loadingElement.style.opacity = '0';
+        setTimeout(() => loadingElement.remove(), 500);
+    }
 });
 
-// Scrollama setup
-const scroller = scrollama();
-
-scroller
-    .setup({
-        step: '.step',
-        offset: 0.5,
-        debug: false
-    })
-    .onStepEnter(response => {
-        const chapter = config.chapters.find(chap => chap.id === response.element.id);
-        map.flyTo(chapter.location);
-        setLayerOpacity(chapter);
+// Function to create story content
+function createStoryContent() {
+    const storyDiv = document.getElementById('story');
+    
+    // Add header
+    const header = document.createElement('div');
+    header.className = 'story-header';
+    header.innerHTML = `
+        <h1>${config.title}</h1>
+        <h2>${config.subtitle}</h2>
+        <p style="font-style: italic; margin: 0;">${config.byline}</p>
+    `;
+    storyDiv.appendChild(header);
+    
+    // Add chapters
+    config.chapters.forEach((chapter, index) => {
+        const chapterDiv = document.createElement('div');
+        chapterDiv.className = `step ${alignments[chapter.alignment]}`;
+        chapterDiv.id = chapter.id;
+        
+        const contentDiv = document.createElement('div');
+        contentDiv.innerHTML = `
+            <h3>${chapter.title}</h3>
+            ${chapter.image ? `<img src="${chapter.image}" alt="${chapter.title}" loading="lazy">` : ''}
+            <p>${chapter.description}</p>
+        `;
+        
+        chapterDiv.appendChild(contentDiv);
+        storyDiv.appendChild(chapterDiv);
     });
+    
+    // Add footer
+    const footer = document.createElement('div');
+    footer.className = 'story-footer';
+    footer.innerHTML = config.footer;
+    storyDiv.appendChild(footer);
+    
+    // Initialize Scrollama after content is created
+    initializeScrollama();
+}
 
-window.addEventListener('resize', scroller.resize);
+// Function to initialize Scrollama
+function initializeScrollama() {
+    scroller = scrollama();
+    
+    scroller
+        .setup({
+            step: '.step',
+            offset: 0.5,
+            debug: false
+        })
+        .onStepEnter(response => {
+            if (isStoryMode) { // Only react to scroll if in story mode
+                const chapter = config.chapters.find(chap => chap.id === response.element.id);
+                if (chapter) {
+                    map.flyTo(chapter.location);
+                    
+                    // Handle chapter enter events
+                    if (chapter.onChapterEnter && chapter.onChapterEnter.length > 0) {
+                        chapter.onChapterEnter.forEach(setLayerOpacity);
+                    }
+                }
+            }
+        });
+
+    window.addEventListener('resize', scroller.resize);
+}
 
 // Add navigation controls
 const nav = new mapboxgl.NavigationControl();
 map.addControl(nav, 'top-left');
 
-// Add custom control for free navigation
-class FreeNavigationControl {
+// Add custom control for mode switching
+class ModeToggleControl {
     onAdd(map) {
         this.map = map;
         this.container = document.createElement('div');
         this.container.className = 'mapboxgl-ctrl mapboxgl-ctrl-group';
         this.button = document.createElement('button');
         this.button.id = 'toggleControlButton';
-        this.button.innerText = 'Enable Free Navigation';
+        this.button.innerText = 'Free Navigation';
+        this.button.title = 'Switch to free map navigation';
         this.button.onclick = toggleMapControl;
         this.container.appendChild(this.button);
         return this.container;
@@ -183,7 +467,7 @@ class FreeNavigationControl {
     }
 }
 
-map.addControl(new FreeNavigationControl(), 'top-left');
+map.addControl(new ModeToggleControl(), 'top-left');
 </script>
 </body>
 </html>
