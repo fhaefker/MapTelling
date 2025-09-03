@@ -2,7 +2,7 @@
 
 An interactive storytelling map application showcasing the Cape Wrath Trail hiking experience in Scotland.
 
-🌐 **Live Demo:** https://fhaefker.github.io/MapTelling/
+🌐 Live Demo (optional): coming soon
 
 ## 🚀 Features
 
@@ -15,39 +15,43 @@ An interactive storytelling map application showcasing the Cape Wrath Trail hiki
 ## 🛠️ Technology Stack
 
 - **Frontend**: HTML5, CSS3, JavaScript (ES6+)
-- **Mapping**: Mapbox GL JS v3.7.0
-- **Scrolling**: Scrollama v3.2.0
-- **Data Visualization**: D3.js v7
-- **Architecture**: Object-oriented, modular design
+- **Mapping**: MapLibre GL via @mapcomponents/react-maplibre (React)
+- **Scrolling**: react-intersection-observer, Framer Motion
+- **Architecture**: React + Vite, komponentenbasiert (MapComponents)
 
 ## 📁 Project Structure
 
 ```
 MapTelling/
-├── index.html              # Main HTML file
-├── README.md               # Project documentation
-├── assets/                 # Media assets
-│   ├── *.jpg              # Story images
-│   └── *.geojson          # GPS track data
-└── src/
-    ├── config.js          # Application configuration
-    ├── css/
-    │   └── styles.css     # Application styles
-    └── js/
-        ├── MapTelling.js      # Main application class
-        ├── LayerManager.js    # Map layer management
-        ├── StoryManager.js    # Story content & scrolling
-        ├── ControlManager.js  # UI controls
-        └── Utils.js           # Utility functions
+└── maptelling-react/
+    ├── index.html            # Vite entry
+    ├── vite.config.ts
+    ├── public/
+    │   └── assets/           # Images & GeoJSON
+    └── src/
+        ├── index.tsx         # React entry
+        ├── App.tsx           # Provider + App
+        ├── MapTellingApp.tsx # Map + Scroller + Overlay + Controls
+        ├── components/
+        │   ├── InsetMap.tsx
+        │   ├── MarkerLayer.tsx
+        │   ├── ModeToggle.tsx
+        │   ├── NavigationControls.tsx
+        │   ├── StoryOverlay.tsx
+        │   ├── StoryScroller.tsx
+        │   └── TerrainManager.tsx
+        ├── config/
+        │   └── mapConfig.ts
+        └── MapTellingApp.css
 ```
 
 ## 🔧 Configuration
 
-Edit `src/config.js` to customize:
+Edit `maptelling-react/src/config/mapConfig.ts` to customize:
 
-- **Map Settings**: Style, access token, initial view
-- **Story Content**: Chapters, titles, descriptions, images
-- **Feature Flags**: 3D terrain, inset map, themes
+- **Map Settings**: MapLibre style, initial view
+- **Story Content**: Chapters, titles, descriptions, images, optional markers
+- **Feature Flags**: Inset map, optional 3D terrain (open DEM sources)
 
 ## 🎨 Customization
 
@@ -86,15 +90,12 @@ Modify CSS variables in `src/css/styles.css`:
 
 ## 🚀 Development
 
-### Local Development
+### Local Development (Vite)
 
-1. Clone the repository
-2. Serve files using a local web server (required for CORS)
-3. Open `index.html` in your browser
-
-### Building
-
-No build process required - pure client-side application.
+1. cd maptelling-react
+2. Install dependencies (yarn / npm i / pnpm i)
+3. Run dev server (yarn dev / npm run dev)
+4. Open http://localhost:5174
 
 ## 📱 Browser Support
 
@@ -105,9 +106,10 @@ No build process required - pure client-side application.
 
 ## 🔗 Dependencies
 
-- [Mapbox GL JS](https://docs.mapbox.com/mapbox-gl-js/) - Interactive maps
-- [Scrollama](https://github.com/russellgoldenberg/scrollama) - Scroll-driven storytelling
-- [D3.js](https://d3js.org/) - Data visualization utilities
+- [@mapcomponents/react-maplibre](https://github.com/mapcomponents/react-map-components-maplibre)
+- [MapLibre GL](https://maplibre.org/)
+- [Framer Motion](https://www.framer.com/motion/)
+- [react-intersection-observer](https://github.com/thebuilder/react-intersection-observer)
 
 ## 🏞️ About the Story
 
@@ -117,7 +119,7 @@ This application tells the story of a 17-day hiking adventure on the Cape Wrath 
 
 ## 📄 License
 
-Based on [Mapbox Storytelling Template](https://github.com/mapbox/storytelling)
+Built with MapComponents and MapLibre
 
 ## 🤝 Contributing
 
