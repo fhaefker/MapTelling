@@ -248,3 +248,5 @@ a:hover {
         scroll-behavior: smooth;
     }
 }
+
+/* Deprecated: legacy Mapbox CSS removed during migration to MapLibre/MapComponents */

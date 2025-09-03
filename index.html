@@ -1,92 +1,27 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Cape Wrath Trail: 17 days hiking in Scotland - An interactive storytelling map">
-    <meta name="author" content="Frederik Häfker">
-    <meta name="robots" content="index, follow">
-    <title>MapTelling - Cape Wrath Trail Scotland</title>
-    
-    <!-- Preload critical resources -->
-    <link rel="preconnect" href="https://api.mapbox.com">
-    <link rel="preconnect" href="https://d3js.org">
-    <link rel="preconnect" href="https://unpkg.com">
-    
-    <!-- External CSS -->
-    <link href="https://api.mapbox.com/mapbox-gl-js/v3.7.0/mapbox-gl.css" rel="stylesheet">
-    
-    <!-- Local CSS -->
-    <link href="./src/css/styles.css" rel="stylesheet">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MapTelling (migrated)</title>
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 0; padding: 2rem; }
+    .card { max-width: 720px; margin: auto; padding: 1.5rem; border: 1px solid #e5e7eb; border-radius: 8px; background: #fafafa; }
+    a { color: #2563eb; text-decoration: none; }
+  </style>
 </head>
 <body>
-    <!-- Map Container -->
-    <div id="map"></div>
-    <div id="mapInset"></div>
-    
-    <!-- Story Container -->
-    <div id="story"></div>
-    
-    <!-- Loading Indicator -->
-    <div id="loading" class="loading">
-        <div>Loading MapTelling...</div>
-    </div>
-
-    <!-- External JavaScript Libraries -->
-    <script src="https://api.mapbox.com/mapbox-gl-js/v3.7.0/mapbox-gl.js"></script>
-    <script src="https://d3js.org/d3.v7.min.js"></script>
-    <script src="https://unpkg.com/scrollama@3.2.0/build/scrollama.js"></script>
-    
-    <!-- Configuration -->
-    <script src="./src/config.js"></script>
-    
-    <!-- Application Modules -->
-    <script src="./src/js/Utils.js"></script>
-    <script src="./src/js/LayerManager.js"></script>
-    <script src="./src/js/StoryManager.js"></script>
-    <script src="./src/js/ControlManager.js"></script>
-    <script src="./src/js/MapTelling.js"></script>
-    
-    <!-- Application Initialization -->
-    <script>
-        // Initialize application when DOM is ready
-        document.addEventListener('DOMContentLoaded', () => {
-            try {
-                // Validate configuration
-                const validation = Utils.validateConfig(config);
-                
-                if (!validation.isValid) {
-                    console.error('Configuration validation failed:', validation.errors);
-                    document.getElementById('loading').innerHTML = 
-                        '<div style="color: red;">Configuration Error: ' + validation.errors.join(', ') + '</div>';
-                    return;
-                }
-                
-                if (validation.warnings.length > 0) {
-                    console.warn('Configuration warnings:', validation.warnings);
-                }
-                
-                // Initialize MapTelling application
-                window.mapTelling = new MapTelling(config);
-                
-                Utils.log('MapTelling application initialized successfully');
-                
-            } catch (error) {
-                console.error('Failed to initialize MapTelling:', error);
-                document.getElementById('loading').innerHTML = 
-                    '<div style="color: red;">Error: Failed to initialize application</div>';
-            }
-        });
-
-        // Global error handler
-        window.addEventListener('error', (event) => {
-            Utils.log(`Unhandled error: ${event.error.message}`, 'error');
-        });
-
-        // Handle unhandled promise rejections
-        window.addEventListener('unhandledrejection', (event) => {
-            Utils.log(`Unhandled promise rejection: ${event.reason}`, 'error');
-        });
-    </script>
+  <div class="card">
+    <h1>MapTelling was migrated</h1>
+    <p>This legacy HTML shell is deprecated. The active app now lives under <code>maptelling-react</code> and runs with Vite and MapLibre (via MapComponents).</p>
+    <p>
+      Start the app:
+    </p>
+    <ol>
+      <li>cd maptelling-react</li>
+      <li>npm install</li>
+      <li>npm run dev</li>
+    </ol>
+  </div>
 </body>
 </html>

@@ -259,3 +259,5 @@ class Utils {
         }
     }
 }
+
+// Deprecated: legacy Mapbox utility removed. Functionality replaced by React components.

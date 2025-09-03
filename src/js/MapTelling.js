@@ -2,6 +2,8 @@
  * MapTelling - Main Application Class
  * Interactive storytelling map application
  */
+// Deprecated: legacy Mapbox app removed. See maptelling-react/src/MapTellingApp.tsx
+
 class MapTelling {
     constructor(config) {
         this.config = config;
