@@ -1,9 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { MapLibreMap, MlGeoJsonLayer, useMap } from '@mapcomponents/react-maplibre';
 import { motion } from 'framer-motion';
+import type { FeatureCollection, LineString } from 'geojson';
 import { config } from './config/mapConfig';
 import StoryOverlay from './components/StoryOverlay';
 import NavigationControls from './components/NavigationControls';
+import ModeToggle from './components/ModeToggle';
+import MarkerLayer from './components/MarkerLayer';
+import StoryScroller from './components/StoryScroller';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import './MapTellingApp.css';
 
@@ -11,6 +15,8 @@ const MapTellingApp: React.FC = () => {
   const [currentChapter, setCurrentChapter] = useState<number>(0);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const [isMapLoaded, setIsMapLoaded] = useState<boolean>(false);
+  const [interactive, setInteractive] = useState<boolean>(false);
+  const [trackData, setTrackData] = useState<FeatureCollection<LineString> | null>(null);
   
   const mapHook = useMap({
     mapId: 'maptelling-map',
@@ -30,7 +36,37 @@ const MapTellingApp: React.FC = () => {
       bearing: firstChapter.location.bearing || 0,
       pitch: firstChapter.location.pitch || 0,
     });
+
+    // ensure interactivity matches state
+    if (interactive) {
+      mapHook.map.map.scrollZoom.enable();
+      mapHook.map.map.dragPan.enable();
+      mapHook.map.map.keyboard.enable();
+      mapHook.map.map.doubleClickZoom.enable();
+      mapHook.map.map.touchZoomRotate.enable();
+    } else {
+      mapHook.map.map.scrollZoom.disable();
+      mapHook.map.map.dragPan.disable();
+      mapHook.map.map.keyboard.disable();
+      mapHook.map.map.doubleClickZoom.disable();
+      mapHook.map.map.touchZoomRotate.disable();
+    }
   }, [mapHook.map]);
+
+  // Load track data from public assets (no Mapbox dependency)
+  useEffect(() => {
+    const url = `${process.env.PUBLIC_URL || ''}/assets/track_day01-03.geojson`;
+    fetch(url)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((json) => {
+        if (json && json.type === 'FeatureCollection') {
+          setTrackData(json as FeatureCollection<LineString>);
+        }
+      })
+      .catch(() => {
+        // optional: log or ignore
+      });
+  }, []);
 
   // Handle chapter navigation
   const navigateToChapter = (chapterIndex: number) => {
@@ -51,6 +87,19 @@ const MapTellingApp: React.FC = () => {
   };
 
   // Auto-play functionality
+      {/* Scroll-driven chapters */}
+      <StoryScroller
+        currentChapter={currentChapter}
+        onEnterChapter={(idx) => {
+          if (!interactive) {
+            navigateToChapter(idx);
+          }
+        }}
+      />
+
+      {/* Markers for chapters */}
+      <MarkerLayer mapId="maptelling-map" activeChapterId={config.chapters[currentChapter].id} />
+
   useEffect(() => {
     if (!isPlaying) return;
 
@@ -83,6 +132,25 @@ const MapTellingApp: React.FC = () => {
     setIsPlaying(!isPlaying);
   };
 
+  const toggleInteractive = () => {
+    const next = !interactive;
+    setInteractive(next);
+    if (!mapHook.map) return;
+    if (next) {
+      mapHook.map.map.scrollZoom.enable();
+      mapHook.map.map.dragPan.enable();
+      mapHook.map.map.keyboard.enable();
+      mapHook.map.map.doubleClickZoom.enable();
+      mapHook.map.map.touchZoomRotate.enable();
+    } else {
+      mapHook.map.map.scrollZoom.disable();
+      mapHook.map.map.dragPan.disable();
+      mapHook.map.map.keyboard.disable();
+      mapHook.map.map.doubleClickZoom.disable();
+      mapHook.map.map.touchZoomRotate.disable();
+    }
+  };
+
   return (
     <div className="map-telling-app">
       {/* MapLibre Map with MapComponents */}
@@ -94,17 +162,20 @@ const MapTellingApp: React.FC = () => {
           zoom: config.chapters[0].location.zoom,
           bearing: config.chapters[0].location.bearing || 0,
           pitch: config.chapters[0].location.pitch || 0,
-          interactive: false,
+      interactive: interactive,
           attributionControl: false,
         }}
         style={{ width: '100%', height: '100vh' }}
       />
+
+    {/* Mode Toggle (Story vs Free Navigation) */}
+    <ModeToggle isInteractive={interactive} onToggle={toggleInteractive} />
       
       {/* GeoJSON Track Layer with MapComponents */}
-      {isMapLoaded && (
+    {isMapLoaded && trackData && (
         <MlGeoJsonLayer
           mapId="maptelling-map"
-          geojson={config.trackData}
+      geojson={trackData}
           type="line"
           defaultPaintOverrides={{
             line: {
@@ -118,10 +189,10 @@ const MapTellingApp: React.FC = () => {
       )}
 
       {/* Track Glow Effect */}
-      {isMapLoaded && (
+    {isMapLoaded && trackData && (
         <MlGeoJsonLayer
           mapId="maptelling-map"
-          geojson={config.trackData}
+      geojson={trackData}
           type="line"
           defaultPaintOverrides={{
             line: {

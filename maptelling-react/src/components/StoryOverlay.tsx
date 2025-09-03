@@ -42,6 +42,19 @@ const StoryOverlay: React.FC<StoryOverlayProps> = ({
           {chapter.title}
         </motion.h2>
         
+        {chapter.image && (
+          <motion.img
+            src={chapter.image}
+            alt={chapter.title}
+            className="story-image"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.5, duration: 0.4 }}
+            style={{ width: '100%', borderRadius: 8, boxShadow: '0 2px 8px rgba(0,0,0,0.1)', margin: '8px 0' }}
+            loading="lazy"
+          />
+        )}
+
         <motion.p
           className="story-description"
           initial={{ opacity: 0, x: -30 }}
