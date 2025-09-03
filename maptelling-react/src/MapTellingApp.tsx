@@ -1,65 +1,51 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { Map, NavigationControl, ScaleControl } from 'maplibre-gl';
+import React, { useState, useEffect } from 'react';
+import { MapLibreMap, MlGeoJsonLayer, useMap } from '@mapcomponents/react-maplibre';
 import { motion } from 'framer-motion';
-import { mapConfig } from './config/mapConfig';
+import { config } from './config/mapConfig';
 import StoryOverlay from './components/StoryOverlay';
 import NavigationControls from './components/NavigationControls';
-import TrackLayer from './components/TrackLayer';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import './MapTellingApp.css';
 
 const MapTellingApp: React.FC = () => {
-  const mapContainer = useRef<HTMLDivElement>(null);
-  const map = useRef<Map | null>(null);
   const [currentChapter, setCurrentChapter] = useState<number>(0);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const [isMapLoaded, setIsMapLoaded] = useState<boolean>(false);
+  
+  const mapHook = useMap({
+    mapId: 'maptelling-map',
+  });
 
-  // Initialize map
+  // Initialize map with first chapter
   useEffect(() => {
-    if (!mapContainer.current || map.current) return;
-
-    map.current = new Map({
-      container: mapContainer.current,
-      style: mapConfig.style,
-      center: mapConfig.chapters[0].center,
-      zoom: mapConfig.chapters[0].zoom,
-      bearing: mapConfig.chapters[0].bearing || 0,
-      pitch: mapConfig.chapters[0].pitch || 0,
-      interactive: false,
-      attributionControl: false,
+    if (!mapHook.map) return;
+    
+    setIsMapLoaded(true);
+    
+    // Set initial camera position
+    const firstChapter = config.chapters[0];
+    mapHook.map.map.jumpTo({
+      center: firstChapter.location.center,
+      zoom: firstChapter.location.zoom,
+      bearing: firstChapter.location.bearing || 0,
+      pitch: firstChapter.location.pitch || 0,
     });
-
-    // Add controls
-    map.current.addControl(new NavigationControl({ showCompass: false }), 'top-right');
-    map.current.addControl(new ScaleControl({ unit: 'metric' }), 'bottom-left');
-
-    map.current.on('load', () => {
-      setIsMapLoaded(true);
-    });
-
-    return () => {
-      if (map.current) {
-        map.current.remove();
-        map.current = null;
-      }
-    };
-  }, []);
+  }, [mapHook.map]);
 
   // Handle chapter navigation
   const navigateToChapter = (chapterIndex: number) => {
-    if (!map.current || chapterIndex < 0 || chapterIndex >= mapConfig.chapters.length) return;
+    if (!mapHook.map || chapterIndex < 0 || chapterIndex >= config.chapters.length) return;
 
-    const chapter = mapConfig.chapters[chapterIndex];
+    const chapter = config.chapters[chapterIndex];
     setCurrentChapter(chapterIndex);
 
-    map.current.flyTo({
-      center: chapter.center,
-      zoom: chapter.zoom,
-      bearing: chapter.bearing || 0,
-      pitch: chapter.pitch || 0,
-      speed: chapter.speed || 0.8,
-      curve: chapter.curve || 1.42,
+    mapHook.map.map.flyTo({
+      center: chapter.location.center,
+      zoom: chapter.location.zoom,
+      bearing: chapter.location.bearing || 0,
+      pitch: chapter.location.pitch || 0,
+      speed: 0.8,
+      curve: 1.42,
       essential: true,
     });
   };
@@ -71,7 +57,7 @@ const MapTellingApp: React.FC = () => {
     const interval = setInterval(() => {
       setCurrentChapter((current) => {
         const next = current + 1;
-        if (next >= mapConfig.chapters.length) {
+        if (next >= config.chapters.length) {
           setIsPlaying(false);
           return current;
         }
@@ -89,7 +75,7 @@ const MapTellingApp: React.FC = () => {
   };
 
   const handleNext = () => {
-    const nextIndex = Math.min(mapConfig.chapters.length - 1, currentChapter + 1);
+    const nextIndex = Math.min(config.chapters.length - 1, currentChapter + 1);
     navigateToChapter(nextIndex);
   };
 
@@ -99,29 +85,68 @@ const MapTellingApp: React.FC = () => {
 
   return (
     <div className="map-telling-app">
-      {/* Map Container */}
-      <div 
-        ref={mapContainer} 
-        className="map-container"
+      {/* MapLibre Map with MapComponents */}
+      <MapLibreMap 
+        mapId="maptelling-map"
+        options={{
+          style: config.style,
+          center: config.chapters[0].location.center,
+          zoom: config.chapters[0].location.zoom,
+          bearing: config.chapters[0].location.bearing || 0,
+          pitch: config.chapters[0].location.pitch || 0,
+          interactive: false,
+          attributionControl: false,
+        }}
         style={{ width: '100%', height: '100vh' }}
       />
       
-      {/* Track Layer */}
-      {isMapLoaded && map.current && (
-        <TrackLayer map={map.current} trackData={mapConfig.track} />
+      {/* GeoJSON Track Layer with MapComponents */}
+      {isMapLoaded && (
+        <MlGeoJsonLayer
+          mapId="maptelling-map"
+          geojson={config.trackData}
+          type="line"
+          defaultPaintOverrides={{
+            line: {
+              'line-color': '#ff6b6b',
+              'line-width': 4,
+              'line-opacity': 0.8,
+            },
+          }}
+          layerId="track-line"
+        />
+      )}
+
+      {/* Track Glow Effect */}
+      {isMapLoaded && (
+        <MlGeoJsonLayer
+          mapId="maptelling-map"
+          geojson={config.trackData}
+          type="line"
+          defaultPaintOverrides={{
+            line: {
+              'line-color': '#ff6b6b',
+              'line-width': 8,
+              'line-opacity': 0.3,
+              'line-blur': 2,
+            },
+          }}
+          layerId="track-glow"
+          insertBeforeLayer="track-line"
+        />
       )}
 
       {/* Story Overlay */}
       <StoryOverlay 
-        chapter={mapConfig.chapters[currentChapter]}
+        chapter={config.chapters[currentChapter]}
         chapterIndex={currentChapter}
-        totalChapters={mapConfig.chapters.length}
+        totalChapters={config.chapters.length}
       />
 
       {/* Navigation Controls */}
       <NavigationControls
         currentChapter={currentChapter}
-        totalChapters={mapConfig.chapters.length}
+        totalChapters={config.chapters.length}
         isPlaying={isPlaying}
         onPrevious={handlePrevious}
         onNext={handleNext}
@@ -133,7 +158,7 @@ const MapTellingApp: React.FC = () => {
       <motion.div 
         className="progress-bar"
         initial={{ scaleX: 0 }}
-        animate={{ scaleX: (currentChapter + 1) / mapConfig.chapters.length }}
+        animate={{ scaleX: (currentChapter + 1) / config.chapters.length }}
         transition={{ duration: 0.5 }}
       />
     </div>

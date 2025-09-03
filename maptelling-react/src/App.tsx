@@ -1,10 +1,13 @@
 import React from 'react';
+import { MapComponentsProvider } from '@mapcomponents/react-maplibre';
 import MapTellingApp from './MapTellingApp';
 
 function App() {
   return (
     <div className="App">
-      <MapTellingApp />
+      <MapComponentsProvider>
+        <MapTellingApp />
+      </MapComponentsProvider>
     </div>
   );
 }
