@@ -21,6 +21,14 @@ export interface MapConfig {
   style: string;
   chapters: Chapter[];
   trackData?: FeatureCollection<LineString>;
+  showInset?: boolean;
+  terrain?: {
+    enabled?: boolean;
+    tiles?: string[];
+    url?: string;
+    tileSize?: 256 | 512;
+    exaggeration?: number;
+  };
 }
 
 // Note: Use a token-free, public demo style to avoid Mapbox. Replace with your own style if needed.
@@ -99,6 +107,14 @@ export const config: MapConfig = {
       },
     },
   ],
-  // trackData: You can import JSON or fetch from /assets when added to the public folder
-  // trackData: require('../assets/track_day01-03.geojson') as FeatureCollection<LineString>,
+  showInset: true,
+  terrain: {
+    enabled: false,
+    // Example for MapTiler Terrain RGB (requires your own key):
+    // tiles: [
+    //   'https://api.maptiler.com/tiles/terrain-rgb-v2/{z}/{x}/{y}.png?key=YOUR_KEY'
+    // ],
+    // tileSize: 512,
+    // exaggeration: 1.5,
+  },
 };

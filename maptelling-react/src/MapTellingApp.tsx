@@ -8,6 +8,8 @@ import NavigationControls from './components/NavigationControls';
 import ModeToggle from './components/ModeToggle';
 import MarkerLayer from './components/MarkerLayer';
 import StoryScroller from './components/StoryScroller';
+import InsetMap from './components/InsetMap';
+import TerrainManager from './components/TerrainManager';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import './MapTellingApp.css';
 
@@ -168,6 +170,9 @@ const MapTellingApp: React.FC = () => {
         style={{ width: '100%', height: '100vh' }}
       />
 
+  {/* Optional 3D Terrain */}
+  <TerrainManager mapId="maptelling-map" config={config.terrain} />
+
     {/* Mode Toggle (Story vs Free Navigation) */}
     <ModeToggle isInteractive={interactive} onToggle={toggleInteractive} />
       
@@ -187,6 +192,9 @@ const MapTellingApp: React.FC = () => {
           layerId="track-line"
         />
       )}
+
+  {/* Inset Map (Overview) */}
+  {config.showInset && <InsetMap mainMapId="maptelling-map" />}
 
       {/* Track Glow Effect */}
     {isMapLoaded && trackData && (
