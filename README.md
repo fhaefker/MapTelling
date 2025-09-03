@@ -97,6 +97,14 @@ Modify CSS variables in `src/css/styles.css`:
 3. Run dev server (yarn dev / npm run dev)
 4. Open http://localhost:5174
 
+## 🌐 Deployment (GitHub Pages)
+
+This repository is configured to auto-deploy the Vite app to GitHub Pages on every push to `main`.
+
+- Pages URL: https://fhaefker.github.io/MapTelling/
+- Vite `base` is set to `/MapTelling/` in `maptelling-react/vite.config.ts`.
+- Assets are loaded using `import.meta.env.BASE_URL` to work under the subpath.
+
 ## 📱 Browser Support
 
 - Chrome/Edge 88+

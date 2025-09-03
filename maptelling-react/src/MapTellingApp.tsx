@@ -57,7 +57,7 @@ const MapTellingApp: React.FC = () => {
 
   // Load track data from public assets (no Mapbox dependency)
   useEffect(() => {
-    const url = `${process.env.PUBLIC_URL || ''}/assets/track_day01-03.geojson`;
+    const url = `${import.meta.env.BASE_URL}assets/track_day01-03.geojson`;
     fetch(url)
       .then((res) => (res.ok ? res.json() : null))
       .then((json) => {
