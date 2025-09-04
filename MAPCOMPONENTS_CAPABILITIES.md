@@ -146,3 +146,176 @@ Basic usage snippet:
 
 ---
 (End of knowledge base)
+
+## 16. Komponenten-API-Katalog (Erweitert)
+Hinweis: Einige Namen sind anhand üblicher Patterns und Storybook-Konventionen abgeleitet. Bei Unsicherheit vor Nutzung gegen aktuelle Library-Version verifizieren.
+
+| Komponente | Kategorie | Kern-Props (Auszug) | Beschreibung | Lebenszyklus-Hinweise |
+|------------|-----------|---------------------|--------------|-----------------------|
+| `MapComponentsProvider` | Core | `children` | Kontext-Root; registriert Maps & verteilt Map-Registry | Muss oberhalb aller Map-/Layer-Komponenten stehen |
+| `MapLibreMap` | Map Container | `mapId`, `options` (style, center, zoom, pitch, bearing, hash, attributionControl, locale) | Erstellt MapLibre Instanz & registriert sie | Unmount entfernt Map-Instanz |
+| `MlGeoJsonLayer` | Daten / Layer | `geojson`, `sourceId?`, `layerId?`, `type?`, `paint?`, `layout?`, `filter?`, `beforeId?`, Event-Handler (`onClick`, `onHover`) | Deklarative GeoJSON-Darstellung | Updates per shallow prop compare; GeoJSON neu binden vs. diffing beachten |
+| `MlNavigationControl` (falls vorhanden) | UI Control | `mapId`, `position` | Fügt Navigationssteuerung hinzu | Entfernt Control beim Unmount |
+| `MlScaleControl` | UI Control | `mapId`, `position`, `maxWidth?`, `unit?` | Maßstabsleiste | - |
+| `MlAttributionControl` | UI Control | `mapId`, `compact?` | Attribution | - |
+| `MlGeolocateControl` | UI / Location | `mapId`, `trackUserLocation?`, `showAccuracyCircle?` | Benutzer-Position | Browser-Geolocation Permissions |
+| `MlFullscreenControl` | UI Control | `mapId` | Vollbild | - |
+| `MlVectorTileLayer` (potentiell) | Daten | `url`/`tiles`, `sourceId`, `layerDefs[]` | Mehrere Layer aus Vektorquelle | LayerDefs definieren style/meta |
+| `MlRasterLayer` | Daten | `tiles|url`, `tileSize?`, `opacity?` | Rasterquelle (WMTS, XYZ) | Cache / Attribution beachten |
+| `MlImageLayer` | Daten | `coordinates`, `url` | Einzelbild-GroundOverlay | Reproject / Fit beachten |
+| `MlHeatmapLayer` | Daten | `geojson`, `paint?` | Dichtevisualisierung | Performance: Aggregation |
+| `MlClusterLayer` | Daten | `geojson`, `clusterOptions?` | Clustering von Punkten | Cluster-Styling via paint/layout |
+| `MlPopup` | UI Overlay | `lngLat`, `anchor?`, `closeButton?`, `closeOnMove?` | Popup mit React Content | Children re-render vs. Map performance |
+| `MlMarker` | UI Marker | `lngLat`, `draggable?`, `color?` | Einzelmarker (DOM-basiert) | Viele Marker => Performance prüfen |
+| `MlLayerPortal` | Advanced | `mapId`, `insert` fn | Direkte Low-Level Layer-Manipulation | Escape Hatch für Spezialfälle |
+
+## 17. Hooks-Referenz
+| Hook | Signatur (Pseudo) | Rückgabe | Zweck | Hinweise |
+|------|-------------------|----------|------|----------|
+| `useMap({ mapId })` | `(params:{mapId:string})` | `{ map?: { map: MapLibreGL.Map }, ready: boolean, removeMap:()=>void }` | Zugriff auf registrierte Map | `ready` erst true nach `load` Event |
+| `useMapEvent(mapId, event, handler)` | `(id:string, evt:string, cb:(e)=>void)` | `void` | Komfort zum Anmelden von Events | Clean-Up automatisch in Effect |
+| `useCameraState(mapId)` | `mapId` | `{ center, zoom, bearing, pitch }` | Reaktives Auslesen der Kamera | Debounce für Performance |
+| `useGeoJsonFetch(url, deps)` | `(string, any[])` | `{ data, loading, error }` | Laden externer GeoJSONs | Caching Strategien ergänzbar |
+| `useLayerVisibility(layerId,mapId)` | `(string,string)` | `[visible:boolean, setVisible(fn|bool)]` | Sichtbarkeit toggeln | Layer muss existieren |
+| `useMapStyle(mapId)` | `mapId` | `[styleUrl:string,setStyle(url)]` | Style dynamisch wechseln | Re-Init/Source-Reset beachten |
+
+## 18. Props & Event-Matrix (Auszug)
+### MapLibreMap `options` (Proxy zu MapLibre GL)
+| Option | Typ | Default | Wirkung |
+|--------|-----|---------|--------|
+| `style` | `string|StyleJSON` | (erforderlich) | Basemap Style |
+| `center` | `[lng,lat]` | style default | Startzentrum |
+| `zoom` | `number` | style default | Startzoom |
+| `pitch` | `number` | 0 | Neigung |
+| `bearing` | `number` | 0 | Rotation |
+| `hash` | `boolean` | false | URL Hash Sync |
+| `attributionControl` | `boolean` | true | Attribution sichtbar |
+
+### Häufige Layer-Paint Keys (MapLibre)
+| Layer Typ | Schlüssel (Beispiele) |
+|-----------|-----------------------|
+| line | `line-color`, `line-width`, `line-opacity`, `line-blur` |
+| fill | `fill-color`, `fill-opacity`, `fill-outline-color` |
+| circle | `circle-radius`, `circle-color`, `circle-stroke-width`, `circle-stroke-color` |
+| symbol | `text-field`, `text-size`, `text-color`, `icon-image`, `icon-size` |
+| heatmap | `heatmap-intensity`, `heatmap-weight`, `heatmap-radius`, `heatmap-color` |
+
+### Events (Map / Layer Ebene)
+| Event | Ebene | Parameter | Nutzung |
+|-------|-------|-----------|---------|
+| `load` | Map | none | Initialisierung nach Style geladen |
+| `moveend` | Map | event | Kamera / Sync aktualisieren |
+| `click` | Map/Layer | evt.features | Interaktion, Popups |
+| `mouseenter` | Layer | evt.features | Hover-Highlight |
+| `mouseleave` | Layer | evt.features | Hover Reset |
+
+## 19. Daten- & Layer-Support (Detail)
+| Datentyp | Empfohlene Komponente | Hinweise |
+|----------|-----------------------|----------|
+| GeoJSON statisch | `MlGeoJsonLayer` | Direkt einbinden; bei großen Objekten `useMemo` |
+| GeoJSON dynamisch (Polling) | `useGeoJsonFetch` + `MlGeoJsonLayer` | Diffing/Flash vermeiden durch stabile LayerIds |
+| Vector Tiles | (Custom / `MlVectorTileLayer`) | Stilierung layerDefinition-basiert |
+| Raster XYZ/WMTS | `MlRasterLayer` | Attribution + CORS prüfen |
+| DEM Terrain | Custom Component (TerrainManager) | Performance-Kosten, exaggeration sparsam |
+| Einzelbild Overlay | `MlImageLayer` | Koordinaten-Reihenfolge beachten |
+| Marker DOM | `MlMarker` | Viele Marker -> Canvas/Circle Layer bevorzugen |
+| Cluster | `MlClusterLayer` | Parameter: clusterRadius, maxZoom |
+| Heatmap | `MlHeatmapLayer` | Für punktdichte Daten |
+
+## 20. Performance Best Practices
+| Szenario | Empfehlung |
+|----------|------------|
+| Großes GeoJSON (>5MB) | Serverseitig in Tiles aufbereiten / simplify / bbox-filter |
+| Häufige Kamera-Updates | Throttle `move` Events / kein unnötiges State-Setzen |
+| Viele Punkte (>10k) | Circle Layer statt Marker DOM; Clustering aktivieren |
+| Interaktive Hover-Effekte | Nur notwendige Feature-Properties laden |
+| Re-Renders | `React.memo` bei Pure Layer Wrappern, stabile prop-Referenzen |
+| Style-Wechsel | Gemeinsame Quellen wiederverwenden; Flash minimieren |
+| Terrain aktiv | Nur bei Bedarf (Toggle) und niedrige exaggeration |
+
+## 21. Entwicklungs- & Release-Workflow (Empfohlen)
+| Phase | Schritte |
+|-------|---------|
+| Setup | Template degit → Dependencies → Dev-Server |
+| Feature | Branch naming `feat/<kurz>`; Add/Update Stories; Layer-Komponenten isoliert |
+| Qualität | ESLint + Type Check + Storybook visuell prüfen + Cypress Basisfall |
+| Build | Rollup (Lib) / Vite (App) + Bundle Analyse (Chunk Size) |
+| Version | SemVer: Patch (Fix), Minor (Neue Komponente), Major (Breaking Props) |
+| Release | Changelog generieren, Tag erstellen, Publish (npm) |
+| Deploy (App) | GitHub Pages / Vercel / Netlify; Base Path beachten |
+
+## 22. Testing & Qualitätssicherung
+| Testtyp | Ziel | Tools |
+|---------|------|-------|
+| Unit | Props / Render Logik | Jest / Vitest |
+| Visual | Layout & Styles | Storybook + Chromatic (optional) |
+| E2E | Nutzerflows (Navigation, Layer Toggle) | Cypress |
+| Performance | Initial Load, FPS Interaktion | Lighthouse / DevTools Profiler |
+| Accessibility | ARIA Rollen Overlays | axe-core / Lighthouse |
+
+### Beispiel Testideen
+- Render: `MlGeoJsonLayer` ohne GeoJSON → Fehlerwarnung?
+- Interaction: Klick auf Marker → Popup erscheint.
+- Multi-Map Sync: Änderung Hauptkarte aktualisiert Inset binnen 1 Frame.
+
+## 23. Sicherheit & Robustheit
+| Bereich | Risiko | Maßnahme |
+|---------|-------|----------|
+| Externe GeoJSON | Übergroße Properties / Memory | Validierung (max Features, Größenlimit) |
+| XSS in Properties | HTML im Popup | Escaping / nur Plain Text |
+| Rate Limits | Tile Server Block | Retry + Backoff + Fallback Style |
+| Fehlerhafte Styles | Map lädt nicht | Try/Catch + User Feedback Overlay |
+| Geolocation | Nutzerprivacy | Permission Check + Opt-In Toggle |
+
+## 24. Accessibility & i18n
+| Thema | Empfehlung |
+|-------|------------|
+| Tastatur-Navigation | Fokus-Reihenfolge Story Steps + Controls |
+| Reduce Motion | `prefers-reduced-motion` respektieren; Animationsgeschwindigkeit reduzieren |
+| Kontrast | Layer-Farben WCAG AA prüfen |
+| Screenreader | ARIA Labels für Steuerelemente (Zoom, Play/Pause) |
+| Sprache | Texte in config extrahieren; i18n JSON Namespace | 
+| RTL Support | CSS logical properties nutzen (margin-inline-start) |
+
+## 25. Erweiterungsmuster (Custom Layer / Control)
+### Custom Layer Komponente (Pseudo-Code)
+```tsx
+const MlCustomWebGlLayer: React.FC<{ mapId: string; id?: string }> = ({ mapId, id = 'custom-gl' }) => {
+  const { map } = useMap({ mapId });
+  useEffect(() => {
+    if (!map) return;
+    const layer: any = { id, type: 'custom', renderingMode: '3d', onAdd(m, gl){ /* init */ }, render(gl, m){ /* draw */ } };
+    if (!map.map.getLayer(id)) map.map.addLayer(layer);
+    return () => { if (map.map.getLayer(id)) map.map.removeLayer(id); };
+  }, [map, id]);
+  return null;
+};
+```
+
+### Custom Control Wrapper
+```tsx
+const MlCustomControl: React.FC<{ mapId: string; position?: string }> = ({ mapId, position = 'top-right' }) => {
+  const { map } = useMap({ mapId });
+  useEffect(() => {
+    if (!map) return;
+    const ctrl = { onAdd(m){ const el=document.createElement('div'); el.innerText='★'; el.className='mc-custom-ctrl'; return el; }, onRemove(){ /* cleanup */ } };
+    map.map.addControl(ctrl as any, position as any);
+    return () => map.map.removeControl(ctrl as any);
+  }, [map, position]);
+  return null;
+};
+```
+
+## 26. Bekannte Lücken & Roadmap (Eigene Einschätzung)
+| Bereich | Status | Empfehlung |
+|---------|--------|------------|
+| Terrain als Komponente | Fehlt | Abstraktion `MlTerrain` entwerfen (source + exaggeration) |
+| Standard Marker Layer | Teilweise (Marker vs Circle) | `MlMarkerLayer` für Bulk-Punkte + active state |
+| Vector Tile Convenience | Unklar | Prüfen ob Wrapper nötig / Style DSL |
+| Performance Guide Offiziell | Fehlt | Beitrag / Docs PR |
+| Story Scroller | App-spezifisch | Generisch machen & als Beispiel einreichen |
+| Layer State Hook Suite | Teilweise | `useLayerVisibility`, `useLayerEvents` dokumentieren |
+| Prop Types Vollständigkeit | Prüfen | Typ-Interfaces extrahieren & referenzieren |
+
+---
+Erweiterungs-Update abgeschlossen (Stand 2025-09-04). Weitere Präzisierungen nach Sichtung tatsächlicher Quell-Code-APIs empfohlen.
