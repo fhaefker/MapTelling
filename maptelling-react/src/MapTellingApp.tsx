@@ -152,6 +152,39 @@ const InnerApp: React.FC = () => {
   }, [terrainEnabled, mapHook.map]);
 
   useEffect(()=>{ log.info('MapTellingApp mount'); },[]);
+  // Enable/disable user interactions based on interactive flag; recenter on story when disabling
+  useEffect(() => {
+    const core = mapHook.map?.map as any;
+    if (!core) return;
+    const apis = [
+      core.dragPan,
+      core.scrollZoom,
+      core.boxZoom,
+      core.dragRotate,
+      core.keyboard,
+      core.doubleClickZoom,
+      core.touchZoomRotate,
+    ].filter(Boolean);
+    if (interactive) {
+      apis.forEach((api:any) => { try { api.enable(); } catch(_) {} });
+    } else {
+      apis.forEach((api:any) => { try { api.disable(); } catch(_) {} });
+      // Fly back to current chapter viewpoint (story mode)
+      try {
+        const chapter = chapters[currentChapter];
+        if (chapter) {
+          core.flyTo({
+            center: chapter.location.center,
+            zoom: chapter.location.zoom,
+            bearing: chapter.location.bearing || 0,
+            pitch: chapter.location.pitch || 0,
+            speed: 0.9,
+            curve: 1.4
+          });
+        }
+      } catch(_) {}
+    }
+  }, [interactive, mapHook.map, currentChapter, chapters]);
   return (
     <MapErrorBoundary>
   <div className="map-telling-app" id="story-main" role="main" aria-label="Story">
