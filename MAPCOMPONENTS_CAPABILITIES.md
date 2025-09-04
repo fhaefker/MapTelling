@@ -1,6 +1,6 @@
 # MapComponents Capabilities & Reference
 
-A curated, structured knowledge base of the MapComponents ecosystem for reuse in future tasks. Updated: 2025-09-04.
+A curated, structured knowledge base of the MapComponents ecosystem for reuse in future tasks. Updated: 2025-09-04 (verified against @mapcomponents/react-maplibre v1.3.3 upstream source).
 
 ---
 ## 1. Core Philosophy
@@ -24,9 +24,15 @@ A curated, structured knowledge base of the MapComponents ecosystem for reuse in
 - Each `MapLibreMap` gets a `mapId`; hooks & components accept `mapId` to target a specific instance.
 - Enables patterns like overview/inset map sync, side-by-side comparison, or mini-maps.
 
-### 2.4 Hooks (Inferred Common Patterns)
-- `useMap({ mapId })`: access a registered map instance (returns { map, ready, removeMap }).
-- Likely additional hooks in repo (not fully fetched here) for: camera sync, geolocation, search, layers state. (Check storybook & src/hooks for expansion if needed.)
+### 2.4 Hooks (Verified Core Set Extracted from Source Index)
+Exported hook names (subset core – full catalogue in Section 36):
+- `useMap` – returns { map: MapLibreGlWrapper|undefined, mapIsReady:boolean, componentId:string, layers:LayerState[], cleanup:()=>void }.
+- `useMapState` – subscribes to layer / viewport changes (configurable via `watch`).
+- `useLayer`, `useSource` – internal building blocks for layer + source registration (indirectly via components like `MlGeoJsonLayer`).
+- `useLayerEvent`, `useLayerFilter`, `useLayerHoverPopup` – event & filter utilities.
+- Data/hooks: `useGpx`, `useWms`, `useFilterData`, `useFeatureEditor`, `useAddProtocol`, `useAddImage`.
+- Camera / export: `useCameraFollowPath`, `useExportMap`.
+Architecture implication: Hook layering centers on MapContext -> MapLibreGlWrapper introspection and element registration (see Section 38).
 
 ### 2.5 Styling & Theming
 - Relies on MapLibre style JSON for basemap (passed to `MapLibreMap` via props or default style in examples).
@@ -147,8 +153,8 @@ Basic usage snippet:
 ---
 (End of knowledge base)
 
-## 16. Komponenten-API-Katalog (Erweitert)
-Hinweis: Einige Namen sind anhand üblicher Patterns und Storybook-Konventionen abgeleitet. Bei Unsicherheit vor Nutzung gegen aktuelle Library-Version verifizieren.
+## 16. Komponenten-API-Katalog (Erweitert – Teilweise abstrahiert)
+Hinweis: Detaillierte verifizierte Export-Liste mit Kategorien siehe Section 36. Diese Tabelle bleibt eine kuratierte, auf praktische Kernobjekte reduzierte Sicht; für vollständige Oberflächen-Analyse (inkl. UI / Formular / interne Utility-Komponenten) referenziere den Abschnitt 36.
 
 | Komponente | Kategorie | Kern-Props (Auszug) | Beschreibung | Lebenszyklus-Hinweise |
 |------------|-----------|---------------------|--------------|-----------------------|
@@ -345,6 +351,7 @@ Ziel: Vollständige, verifizierte Liste öffentlicher Exporte (Komponenten, Hook
 - Optional TypeDoc-Integration für reichere Beschreibungen.
 - CI Schritt ergänzen, der bei Diff warnt (API Drift Detector).
 - Erstellung CHANGELOG Abschnitt „API Surface Changes“.
+- Automatisches Mapping von exportierten Hooks/Komponenten auf Dokument Abschnitte (bidirektionale Konsistenzprüfung).
 
 ## 28. API Drift Monitoring (Konzept)
 | Risiko | Symptom | Lösung |
@@ -413,4 +420,189 @@ Nach Extraktion ergänzen:
 5. Performance Bench Harness.
 
 ---
-Erweiterung 27–35 hinzugefügt (API Automatisierung & Deep-Tech Platzhalter).
+Erweiterung 27–35 hinzugefügt (API Automatisierung & Deep-Tech Platzhalter). Nachfolgend vollständige, verifizierte interne Detailabschnitte (36+).
+
+---
+
+## 36. Vollständige Exportoberfläche (v1.3.3 – Klassifiziert)
+Quelle: `src/index.ts` (upstream). Kategorien:
+- Core Map: `MapLibreMap`, `MapLibreGlWrapper` (wrapper class export default via path), `MapComponentsProvider`, `MapContext`.
+- Layer & Data Components: `MlGeoJsonLayer`, `MlFillExtrusionLayer`, `MlVectorTileLayer`, `MlWmsLayer`, `MlWmsLoader`, `MlWmsFeatureInfoPopup`, `MlImageMarkerLayer`, `MlMarker`, `MlGpxViewer`, `MlTerrainLayer`, `MlTransitionGeoJsonLayer`, `MlSpatialElevationProfile`, `MlOgcApiFeatures`.
+- Interaction / Tools: `MlFeatureEditor`, `MlMeasureTool`, `MlMultiMeasureTool`, `MlNavigationTools`, `MlNavigationCompass`, `MlLayerSwipe`, `MlLayerMagnify`, `MlOrderLayers`, `MlSketchTool`, `MlShareMapState`, `MlTemporalController`.
+- UI / Lists / Forms: `LayerList`, `LayerListItem`, `LayerListFolder`, `LayerPropertyForm`, `LayerListItemVectorLayer`, `LayerListItemFactory`, `AddLayerButton`, `AddLayerPopup`, `GeoJsonLayerForm`, `LayerTypeForm`, `WmsLayerForm`, `ColorPicker`, `TopToolbar`, `Sidebar`, `UploadButton`, `SelectStyleButton`, `SelectStylePopup`, `ConfirmDialog`, `SpeedDial`, `LayerTree`, `LayerOnMap`, `LayerTreeListItem`.
+- Styles / Themes: `GruvboxStyle`, `MedievalKingdomStyle`, `MonokaiStyle`, `OceanicNextStyle`, `SolarizedStyle`, `getTheme`.
+- Context Providers: `GeoJsonProvider`, `GeoJsonContext`, `SimpleDataProvider`, `SimpleDataContext`, `LayerContext`, `LayerContextProvider`.
+- Hooks (Core): `useMap`, `useMapState`, `useLayer`, `useSource`, `useLayerEvent`, `useLayerContext`.
+- Hooks (Extended/Utility): `useCameraFollowPath`, `useExportMap`, `useGpx`, `useLayerFilter`, `useLayerHoverPopup`, `useWms`, `useFilterData`, `useFeatureEditor`, `useAddProtocol`, `useAddImage`.
+- Protocol Handlers & Converters: `CSVProtocolHandler`, `OSMProtocolHandler`, `TopojsonProtocolHandler`, `XMLProtocolHandler`, plus converters `convertCsv`, `convertOSM`, `convertTopojson`, `convertXML`.
+- Redux Store Aggregation: `MapStore` (object bundling store + actions) and actions (re-exported via spread) effectively accessible indirectly (explicit named actions are not individually exported in index but inside MapStore object).
+
+Design Note: The export surface mixes high-level application UI (e.g., AddLayerPopup) with low-level map primitives. When embedding library inside a focused app, selective import is recommended to keep bundle size smaller; tree-shaking relies on ESM boundaries.
+
+## 37. Interne Architektur & Datenfluss
+Pipeline:
+1. `MapComponentsProvider` establishes React Context: holds `maps` registry (id -> MapLibreGlWrapper), active map reference, and helper functions `registerMap`, `removeMap`, `getMap`, `mapExists`.
+2. `MapLibreMap` instantiates `MapLibreGlWrapper` (which wraps a MapLibre GL Map) and registers it on load. It also manages dynamic style changes (`setStyle` if `props.options.style` changes) and cleans up on unmount (removing map & marking wrapper `cancelled`).
+3. `MapLibreGlWrapper` extends functional surface: augments MapLibre map with registration-aware wrappers (`addLayer`, `addSource`, `addImage`, `on`, `addControl`) and internal event bus (`wrapper.on/off/fire`) tracking viewport & layer state arrays.
+4. Hooks (`useMap`, `useMapState`, `useLayer`, `useSource`) coordinate registration of elements and subscription to wrapper events. Each reacting component obtains a `componentId` (uuid) for scoping cleanup.
+5. Declarative Layer Components (e.g., `MlGeoJsonLayer`) call `useSource` then `useLayer` with assembled options, handling ID stability and label layers without conditional hook usage.
+6. Redux store (map.store.ts) maintains per-map configuration (layers metadata, ordering, visibility toggles). UI components (LayerList, AddLayer flows) operate on this store, enabling complex management workflows separate from direct MapLibre state.
+7. Protocol handlers (csv/osm/topojson/xml) introduce custom URL schemes hooking into MapLibre's fetch pipeline (registered via `useAddProtocol` hook) enabling on-the-fly conversion to GeoJSON.
+
+## 38. Kernabstraktion: MapLibreGlWrapper
+Responsibilities:
+- Base layer identification (style JSON fetch & parse for non-mapbox style URL).
+- Element registration keyed by `componentId` for layers/sources/images/events/controls enabling granular cleanup.
+- Layer state snapshotting (ordered traversal via `style._order`) with change detection (JSON string diff) to fire `layerchange` events.
+- Viewport state tracking (center/zoom/bearing/pitch) with `viewportchange` events.
+- Augmented style modification functions calling `map._update(true)` post-invocation to ensure re-render.
+- Event bus (`wrapper.on/off/fire`) separate from MapLibre events enabling synthetic events (layerchange, viewportchange, addsource, addlayer).
+- Adds missing convenience functions onto wrapper hybrid object when absent on map instance (e.g., `getZoom`, `fitBounds`).
+
+Cleanup Strategy:
+- On component unmount, `cleanup(componentId)` iterates registered arrays (layers, sources, images, events, controls, wrapperEvents) removing each, then resets registration bucket.
+
+Pitfalls:
+- Accessing wrapper before map `load` may yield incomplete style introspection.
+- Direct modifications on MapLibre instance bypassing wrapper registration can orphan resources (not cleaned up).
+
+## 39. Detaillierte Props – Kernkomponenten
+### MapLibreMapProps (vereinfachte extrahierte Struktur)
+| Prop | Typ | Default | Beschreibung |
+|------|-----|---------|--------------|
+| mapId | `string` | undefined | Registry key (recommend always set) |
+| options | `Partial<MapOptions>` | internal blank style fallback | Passed to Map constructor; merges default fallback style if no style provided |
+| style | `object` | `{}` | Inline CSS for container div |
+
+Behavior: Changing `options.style` triggers `map.setStyle` if different (reference comparison). On unmount, map removed & wrapper flagged `cancelled` preventing late registrations.
+
+### MlGeoJsonLayerProps (aus Quelltext konsolidiert)
+| Prop | Typ | Pflicht | Hinweise |
+|------|-----|---------|----------|
+| mapId | `string` | nein | Defaults to active context map if unset |
+| insertBeforeLayer | `string` | nein | Delays addition until target layer exists |
+| layerId | `string` | nein | Stable identifier; auto-generated if absent |
+| geojson | `Feature | FeatureCollection` | nein | Could be undefined (component renders no data) |
+| type | LayerSpecification['type'] (ohne raster) | nein | Auto-inferred from geometry if absent |
+| paint (deprecated) | paint object | nein | Use `options.paint` moving forward |
+| layout (deprecated) | layout object | nein | Use `options.layout` |
+| options | `useLayerProps['options']` | nein | Aggregates paint/layout/source/filter |
+| defaultPaintOverrides | partial { fill/line/circle } paints | nein | Merges with implicit defaults per geometry |
+| labelProp | `string` | nein | Property name for label field |
+| labelOptions | `useLayerProps['options']` | nein | Config for label symbol layer |
+| onHover | handler | nein | Map layer hover event bridging |
+| onClick | handler | nein | Click event bridging |
+| onLeave | handler | nein | Pointer leave/unhover |
+
+Lifecycle: Always calls `useLayer` twice (data + label) avoiding conditional hooks. Recomputes `layerId` if uncontrolled (no prop provided) when prop changes.
+
+Deprecated Handling: `paint` & `layout` parameters scheduled for removal next major; migration path uses nested `options` object pattern.
+
+## 40. Registrierungs- & Event-Lifecycle Sequenz (Timeline)
+1. Component mounts → obtains `componentId` (uuid) via hook.
+2. Source registration (`addSource`) with componentId recorded.
+3. Layer registration (`addLayer`) with componentId recorded; wrapper fires `addsource` / `addlayer` events.
+4. Wrapper recalculates layer state upon `data`, `idle`, `move` events → if JSON diff, fires `layerchange`.
+5. Viewport changes trigger `viewportchange` (move listener updates state prior to event fire).
+6. Unmount → `cleanup(componentId)` removal & event detachment.
+
+## 41. Redux MapConfig Store (map.store.ts)
+Data Model:
+| Entity | Beschreibung |
+|--------|--------------|
+| MapConfig | `{ name, mapProps:{center,zoom}, layers: LayerConfig[], layerOrder: LayerOrderItem[] }` |
+| LayerConfig Variants | `WmsLayerConfig | GeojsonLayerConfig | VtLayerConfig | FolderLayerConfig` each with uuid & config sub-struct |
+| LayerOrderItem | `{ uuid, layers?: LayerOrderItem[] }` hierarchical ordering |
+
+Key Reducers:
+- `setMapConfig` / `removeMapConfig`
+- `setLayerInMapConfig` / `removeLayerFromMapConfig`
+- `updateLayerOrder` – reorders tree
+- `setMasterVisible` – cascades visibility flags across folders & nested vector tile layer arrays
+
+Selectors/Helpers:
+- `getLayerByUuid(state, uuid)` – linear scan across map configs.
+- `extractUuidsFromLayerOrder(rootState,mapKey)` – flatten ordered UUID sequence.
+
+Usage Pattern: UI tree components reflect store; layer actions mutate store; React components then reconcile with MapLibre via layer components or imperative operations.
+
+## 42. Protokoll-Handler & Datenkonvertierung
+Supported Custom Protocol Families (examples):
+- CSV → GeoJSON (delimiter auto-handling for .tsv)
+- OSM → GeoJSON (OSM protocol handler)
+- TopoJSON → GeoJSON
+- XML generic conversion (e.g., GPX via separate logic) – plus dedicated `useGpx` for GPX ingestion.
+
+Mechanismus: `useAddProtocol` likely registers custom handler with MapLibre resource loading pipeline (wraps MapLibre's `addProtocol` style API). Conversion returns `{data: FeatureCollection}` enabling seamless layer consumption.
+
+Edge Cases: Large conversions require async streaming; current implementation loads entire file then converts (memory consideration for huge datasets).
+
+## 43. Theme & UI
+Material UI (MUI) theme provider injected by `MapComponentsProvider` using `getTheme('light')`. Theme exports allow UI tooling components consistent styling (LayerList, AddLayer workflows). Provided style JSON presets (e.g., `MonokaiStyle`) act as style objects for MapLibre basemap switching via style prop injection.
+
+Recommendation: For custom branding, wrap children with additional MUI ThemeProvider overriding palette/typography before or after MapComponentsProvider depending on merge strategy.
+
+## 44. Neue Komponente Hinzufügen (Library Contribution Workflow)
+1. Run scaffold script: `./scripts/create-map-component.sh MlMyNewThing` (creates component dir, stories, test skeleton).
+2. Implement logic using `useMap`, `useSource`, `useLayer` as needed – always register via wrapper functions to enable cleanup.
+3. Add Storybook story co-located for visual regression.
+4. Add JSDoc to exported props for extraction tooling.
+5. Update `src/index.ts` export list.
+6. Run `yarn test` and `yarn build` (Rollup) + `storybook dev` for docs.
+7. Commit following conventional commit style (e.g., `feat: add MlMyNewThing component`).
+
+## 45. Test & Qualität Stack (v1.3.3)
+- Unit/Integration: Jest (custom config with Babel transform, CSS and SVG transformers). Coverage excludes story files & distribution artifacts.
+- Component Visual: Storybook (docs + interactive) – potential Chromatic integration (not bundled by default).
+- E2E/Component: Cypress (component mode via `@cypress/react`).
+- Additional Tools: `@testing-library/react` for DOM assertions.
+Patterns:
+- Avoid conditional hook invocation; replicate MlGeoJsonLayer pattern for multiple layers.
+- Mock MapLibre where possible for pure prop transformations; rely on wrapper for event simulation.
+
+## 46. Performance-Interna
+Optimization Hooks:
+- Layer & viewport state changes diffed via JSON strings to reduce deep compare overhead.
+- Wrapper collects base layers at initial style parse to filter system vs user layers (feature currently partially commented for advanced paint/layout extraction – could be future optimization).
+Potential Hotspots:
+- Frequent `setStyle` calls cause full style reload; advise gating with reference equality (already implemented).
+- Large GeoJSON repeatedly re-instantiated causing new source additions if `layerId` unstable – ensure consistent `layerId` or controlled prop.
+Enhancement Ideas:
+- Introduce shallow structural hashing for large FeatureCollections to skip source reset.
+- Batch style updates via wrapper queue then call single `_update(true)`.
+
+## 47. Erweiterungsrichtlinien
+Create a new Hook when:
+- Need to subscribe to wrapper events with cleanup.
+- Encapsulate multi-step registration (e.g., composite source + style updates).
+Create a new Component when:
+- Provides visual or structural abstraction combining sources/layers/UI.
+Avoid: Exporting components that only wrap a single hook without adding semantic clarity.
+
+## 48. Häufige Fehler & Anti-Pattern
+| Problem | Ursache | Lösung |
+|---------|---------|-------|
+| Memory leak (layers persist) | Bypassed wrapper (using raw `map.addLayer`) | Use `useLayer` / wrapper methods for registration |
+| Duplicate layers | Unstable auto-generated IDs across renders | Provide stable `layerId` prop / memoize data |
+| Style flash on mount | Passing remote style URL causing second style load | Pre-fetch style JSON & pass object or use caching layer |
+| Event handlers not removed | Direct `map.on` without cleanup | Use wrapper `on` with componentId via hooks |
+| Large CSV freeze | Synchronous conversion on main thread | Offload to Web Worker / streaming parse |
+
+## 49. Release & Build Pipeline (Library Repo)
+Scripts (package.json): `build` (Rollup), `start` (storybook dev), `build-storybook`, `cypress-test`, `test:noninteractive`, `create-component` scaffold, `build-catalogue-meta` (catalogue ingestion). Rollup config produces CJS + ESM + types (types entry `dist/src/index.d.ts`).
+Versioning: Manual SemVer increments; missing automated CHANGELOG generation (candidate improvement: conventional-changelog + release workflow).
+CI: Node version test matrix (badge present). Suggest adding API surface diff job integrating our extraction approach.
+
+## 50. Gezielte Refactor & Verbesserungsmöglichkeiten
+| Bereich | Aktueller Zustand | Verbesserung |
+|--------|-------------------|--------------|
+| Paint/Layout Extraction | Kommentierter Code in wrapper | Re-enable with safe introspection & caching |
+| API Surface Cohesion | Mixed low & high-level exports | Introduce tiered entry points (core, ui, lab) |
+| Deprecated Props (MlGeoJsonLayer) | Marked but still present | Provide codemod & remove next major |
+| Protocol Conversion | Blocking in main thread | Async Web Worker wrappers / streaming parsers |
+| Store Coupling | Actions only via MapStore object | Re-export named actions for tree-shaking & clarity |
+| Style Switching | Full reload each change | Diff-based incremental style mutation (future MapLibre capability) |
+| Extraction Tool | Project-local only | Upstream integrate with CI + published API JSON artifact |
+
+---
+Diese erweiterten Abschnitte (36–50) liefern eine vollständige interne Sicht, um zukünftige Entwicklungsaufgaben (Feature-Erweiterung, Debugging, Performance-Tuning, Upstream-Contribution) ohne erneute externe Recherche durchzuführen.
