@@ -38,7 +38,7 @@ const InnerApp: React.FC = () => {
   const [trackError, setTrackError] = useState<string | null>(null); // QW-02 Fehlerzustand
   const [styleObject, setStyleObject] = useState<any | null>(null); // WMS raster style object only
   const [wmsLayerName, setWmsLayerName] = useState<string | null>(null);
-  const [terrainEnabled, setTerrainEnabled] = useState<boolean>(!!config.terrain?.enabled); // QW-08 Toggle Terrain
+  const [terrainEnabled, setTerrainEnabled] = useState<boolean>(false); // runtime controlled only
   const t = useT();
   const debugEnabled = typeof window !== 'undefined' && window.location.search.includes('debug');
   const { fps } = useFpsSample({ enabled: debugEnabled }); // ST-02 FPS Hook
@@ -138,6 +138,18 @@ const InnerApp: React.FC = () => {
 
   const toggleInteractive = useCallback(() => setInteractive(p => !p), []);
   const toggleTerrain = useCallback(() => setTerrainEnabled(t => !t), []); // QW-08
+  // Pitch fallback effect when no DEM source configured
+  useEffect(() => {
+    const base = mapHook.map?.map;
+    if (!base) return;
+    if (!config.terrain?.tiles) {
+      // animate pitch & bearing for pseudo 3D effect
+      const animator: any = (base as any).easeTo ? base : null;
+      if (!animator) return; // test environment mock lacks easeTo
+      if (terrainEnabled) animator.easeTo({ pitch: 55, bearing: base.getBearing?.() || 0, duration: 800 });
+      else animator.easeTo({ pitch: 0, duration: 600 });
+    }
+  }, [terrainEnabled, mapHook.map]);
 
   useEffect(()=>{ log.info('MapTellingApp mount'); },[]);
   return (
@@ -166,14 +178,16 @@ const InnerApp: React.FC = () => {
 
   {/* Optional 3D Terrain */}
   <Suspense fallback={null}>
-    <MlTerrain
-      mapId="maptelling-map"
-      enabled={terrainEnabled && !!config.terrain?.enabled}
-      exaggeration={config.terrain?.exaggeration}
-      url={config.terrain?.url as any}
-      tiles={config.terrain?.tiles as any}
-      tileSize={config.terrain?.tileSize as any}
-    />
+    {config.terrain?.tiles && (
+      <MlTerrain
+        mapId="maptelling-map"
+        enabled={terrainEnabled}
+        exaggeration={config.terrain?.exaggeration}
+        url={config.terrain?.url as any}
+        tiles={config.terrain?.tiles as any}
+        tileSize={config.terrain?.tileSize as any}
+      />
+    )}
   </Suspense>
 
   {/* Mode Toggle repositioned (top-right under terrain button) */}
@@ -183,6 +197,8 @@ const InnerApp: React.FC = () => {
   <button
     style={{ position: 'absolute', top: 8, right: 8, zIndex: 5 }}
     onClick={toggleTerrain}
+    aria-pressed={terrainEnabled}
+    title={config.terrain?.tiles ? 'Schalte 3D Terrain um' : 'Kein DEM konfiguriert – Pitch Fallback'}
   >{terrainEnabled ? t('terrain.disable') : t('terrain.enable')}</button>
       
       {/* GeoJSON Track Layer with MapComponents */}
@@ -261,6 +277,12 @@ const InnerApp: React.FC = () => {
       <Suspense fallback={null}>
         <StoryCreator />
       </Suspense>
+      {/* Terrain pitch fallback effect note */}
+      {terrainEnabled && !config.terrain?.tiles && (
+        <div style={{ position:'fixed', top:40, left:8, background:'rgba(0,0,0,0.55)', color:'#fff', padding:'4px 8px', fontSize:11, borderRadius:4 }}>
+          Terrain (Pitch) Fallback aktiv – keine DEM Tiles konfiguriert
+        </div>
+      )}
       {/* WMS Attribution & Status Overlay (no caching) */}
       <Suspense fallback={null}>
         <WmsOverlay mapId="maptelling-map" layer={wmsLayerName} attribution={(config as any).wms?.attribution} baseUrl={(config as any).wms?.baseUrl} />
