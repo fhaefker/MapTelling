@@ -1,13 +1,21 @@
 import React from 'react';
 import { render } from '@testing-library/react';
-import { MapComponentsProvider } from '@mapcomponents/react-maplibre';
-import GeoJsonLayerCompat from '../GeoJsonLayerCompat';
+import { MapComponentsProvider, MlGeoJsonLayer } from '@mapcomponents/react-maplibre';
 
-const sample = { type: 'FeatureCollection', features: [] };
+import type { FeatureCollection, Geometry } from 'geojson';
+const sample: FeatureCollection<Geometry> = { type: 'FeatureCollection', features: [] };
 
-describe('GeoJsonLayerCompat', () => {
-  it('renders without crash and maps deprecated props', () => {
-    const { rerender } = render(<MapComponentsProvider><GeoJsonLayerCompat geojson={sample} paint={{ 'line-color': '#f00' }} /></MapComponentsProvider>);
-    rerender(<MapComponentsProvider><GeoJsonLayerCompat geojson={sample} layout={{ visibility: 'none' }} /></MapComponentsProvider>);
+describe('MlGeoJsonLayer (direct)', () => {
+  it('renders without crash using options API', () => {
+    const { rerender } = render(
+      <MapComponentsProvider>
+        <MlGeoJsonLayer geojson={sample} options={{ paint: { 'line-color': '#f00' } }} />
+      </MapComponentsProvider>
+    );
+    rerender(
+      <MapComponentsProvider>
+        <MlGeoJsonLayer geojson={sample} options={{ layout: { visibility: 'none' } }} />
+      </MapComponentsProvider>
+    );
   });
 });

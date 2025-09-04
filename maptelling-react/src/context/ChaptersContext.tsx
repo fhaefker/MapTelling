@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useMemo, useState, useCallback, useRef, useEffect } from 'react';
 import type { Chapter } from '../types/story';
+import { ChapterSchema, safeParseChapters } from '../types/storySchema';
 
 interface ChaptersContextValue {
   chapters: Chapter[];
@@ -10,6 +11,9 @@ interface ChaptersContextValue {
   removeChapter(id: string): void; // remove dynamic (non-base) chapter
   resetChapter(id: string): Chapter | undefined; // reset base chapter to original version (overrides cleared)
   getOriginal(id: string): Chapter | undefined; // fetch original base version
+  exportChapters(): Chapter[]; // full current chapters (base+extras, overrides applied)
+  importChapters(data: Chapter[]): { imported: number; overrides: number; extras: number }; // merge incoming
+  baseIds(): string[]; // ids of initial base chapters
 }
 
 const ChaptersContext = createContext<ChaptersContextValue | undefined>(undefined);
@@ -49,14 +53,30 @@ export const ChaptersProvider: React.FC<{ chapters: Chapter[]; children: React.R
   });
   const addChapter = useCallback((ch: Omit<Chapter,'id'> & { id?: string }) => {
     const id = ch.id || `chapter_${Date.now().toString(36)}`;
-    const chapter: Chapter = { ...ch, id } as Chapter;
-    setChapters(prev => [...prev, chapter]);
-    return chapter;
+    const candidate: Chapter = { ...ch, id } as Chapter;
+    const parsed = ChapterSchema.safeParse(candidate);
+    if (!parsed.success) {
+      // eslint-disable-next-line no-console
+      console.warn('[Chapters] addChapter validation failed', parsed.error.issues.map(i=>i.message));
+      return candidate; // return anyway but don't persist invalid
+    }
+    setChapters(prev => [...prev, parsed.data]);
+    return parsed.data;
   }, []);
   const updateChapter = useCallback((id: string, patch: Partial<Omit<Chapter,'id'>>) => {
     let updated: Chapter | undefined;
     setChapters(prev => prev.map(ch => {
-      if (ch.id === id) { updated = { ...ch, ...patch, id: ch.id } as Chapter; return updated; }
+      if (ch.id === id) {
+        const candidate = { ...ch, ...patch, id: ch.id } as Chapter;
+        const parsed = ChapterSchema.safeParse(candidate);
+        if (!parsed.success) {
+          console.warn('[Chapters] updateChapter validation failed', parsed.error.issues.map(i=>i.message));
+          updated = candidate; // keep candidate (soft fail)
+          return candidate;
+        }
+        updated = parsed.data;
+        return parsed.data;
+      }
       return ch;
     }));
     return updated;
@@ -110,6 +130,33 @@ export const ChaptersProvider: React.FC<{ chapters: Chapter[]; children: React.R
     } catch {/* ignore */}
   }, [chapters]);
 
+  const exportChapters = useCallback(() => [...chapters], [chapters]);
+  const importChapters = useCallback((incoming: Chapter[]) => {
+    if (!Array.isArray(incoming)) return { imported: 0, overrides: 0, extras: 0 };
+    const parsed = safeParseChapters(incoming);
+    if (!parsed.valid) {
+      console.warn('[Chapters] import validation errors', parsed.errors);
+    }
+    const validIncoming: Chapter[] = parsed.value as Chapter[];
+    const baseMap = new Map(baseRef.current.map(b => [b.id, b] as [string, Chapter]));
+    const overrides: Record<string, Partial<Chapter>> = {};
+    const extras: Chapter[] = [];
+    validIncoming.forEach(ch => {
+      if (!ch || typeof ch !== 'object') return;
+      if (!ch.id || !ch.title || !ch.description || !ch.location || !Array.isArray(ch.location.center)) return;
+      if (baseMap.has(ch.id)) {
+        overrides[ch.id] = { ...ch, id: ch.id } as any;
+      } else {
+        extras.push(ch as Chapter);
+      }
+    });
+    // rebuild base with overrides
+    const newBase = baseRef.current.map(b => overrides[b.id] ? { ...b, ...(overrides[b.id] as Chapter), id: b.id } : b);
+    setChapters([...newBase, ...extras]);
+    return { imported: incoming.length, overrides: Object.keys(overrides).length, extras: extras.length };
+  }, []);
+  const baseIds = useCallback(() => baseRef.current.map(b => b.id), []);
+
   const value = useMemo<ChaptersContextValue>(() => ({
     chapters,
     total: chapters.length,
@@ -118,8 +165,11 @@ export const ChaptersProvider: React.FC<{ chapters: Chapter[]; children: React.R
     updateChapter,
     removeChapter,
     resetChapter,
-    getOriginal
-  }), [chapters, addChapter, updateChapter, removeChapter, resetChapter, getOriginal]);
+    getOriginal,
+    exportChapters,
+    importChapters,
+    baseIds
+  }), [chapters, addChapter, updateChapter, removeChapter, resetChapter, getOriginal, exportChapters, importChapters, baseIds]);
   return <ChaptersContext.Provider value={value}>{children}</ChaptersContext.Provider>;
 };
 export const resetStoredChapters = () => { if (typeof window !== 'undefined') { window.localStorage.removeItem(LS_KEY); } };

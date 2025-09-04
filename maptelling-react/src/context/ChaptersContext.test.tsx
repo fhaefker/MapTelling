@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { render, screen } from '@testing-library/react';
 import { ChaptersProvider, useChapters } from './ChaptersContext';
 
@@ -7,9 +7,12 @@ const chapters = [
   { id: 'c2', title: 'Two', description: 'Desc2', location: { center: [1,1] as [number, number], zoom: 6, pitch: 0, bearing: 0 }, onChapterEnter: [], onChapterExit: [] }
 ];
 
-const Probe: React.FC = () => {
-  const { total, getByIndex } = useChapters();
-  return <div data-testid="probe" data-total={total} data-first={getByIndex(-10).id} data-last={getByIndex(999).id} />;
+const Probe: React.FC<{ mutate?: boolean }> = ({ mutate }) => {
+  const { total, getByIndex, updateChapter } = useChapters() as any;
+  useEffect(() => {
+    if (mutate) updateChapter('c1', { title: 'One-Edited', description: 'Changed' });
+  }, [mutate, updateChapter]);
+  return <div data-testid="probe" data-total={total} data-first={getByIndex(-10).id} data-last={getByIndex(999).id} data-first-title={getByIndex(0).title} />;
 };
 
 describe('ChaptersContext', () => {
@@ -26,5 +29,10 @@ describe('ChaptersContext', () => {
   try { render(<Probe />); } catch { caught = true; }
     console.error = OrigError;
     expect(caught).toBe(true);
+  });
+  it('updates a chapter via updateChapter', () => {
+    render(<ChaptersProvider chapters={chapters}><Probe mutate /></ChaptersProvider>);
+    const el = screen.getByTestId('probe');
+    expect(el.getAttribute('data-first-title')).toBe('One-Edited');
   });
 });

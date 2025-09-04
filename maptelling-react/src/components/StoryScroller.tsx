@@ -1,4 +1,5 @@
 import React from 'react';
+import { useRenderLog } from '../hooks/useRenderLog';
 import { useInView } from 'react-intersection-observer';
 import { useChapters } from '../context/ChaptersContext';
 
@@ -9,8 +10,9 @@ interface StoryScrollerProps {
   passThrough?: boolean; // when true, let pointer events hit map (free navigation mode)
 }
 
-const StoryScroller: React.FC<StoryScrollerProps> = ({ currentChapter, onEnterChapter, disabled, passThrough }) => {
+const StoryScrollerComponent: React.FC<StoryScrollerProps> = ({ currentChapter, onEnterChapter, disabled, passThrough }) => {
   const { chapters } = useChapters();
+  useRenderLog('StoryScroller');
   return (
     <div
       style={{
@@ -40,16 +42,19 @@ const StoryScroller: React.FC<StoryScrollerProps> = ({ currentChapter, onEnterCh
 
       {/* Chapters (dynamic from context) */}
       <div style={{ maxWidth: 720, margin: '0 auto' }}>
-        {chapters.map((ch, idx) => (
-          <ChapterStep
-            key={ch.id}
-            index={idx}
-            active={idx === currentChapter}
-            title={ch.title}
-            description={ch.description}
-            onEnter={() => { if (!disabled) onEnterChapter(idx); }}
-          />
-        ))}
+        {chapters.map((ch, idx) => {
+          const handleEnter = () => { if (!disabled) onEnterChapter(idx); };
+          return (
+            <MemoChapterStep
+              key={ch.id}
+              index={idx}
+              active={idx === currentChapter}
+              title={ch.title}
+              description={ch.description}
+              onEnter={handleEnter}
+            />
+          );
+        })}
       </div>
 
       {/* Footer */}
@@ -92,4 +97,6 @@ const ChapterStep: React.FC<{
   );
 };
 
+const MemoChapterStep = React.memo(ChapterStep, (a, b) => a.active === b.active && a.title === b.title && a.description === b.description);
+const StoryScroller = React.memo(StoryScrollerComponent);
 export default StoryScroller;
