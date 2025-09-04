@@ -5,9 +5,10 @@ import { config } from '../config/mapConfig';
 interface StoryScrollerProps {
   currentChapter: number;
   onEnterChapter: (index: number) => void;
+  disabled?: boolean; // when true, ignore scroll-based chapter changes
 }
 
-const StoryScroller: React.FC<StoryScrollerProps> = ({ currentChapter, onEnterChapter }) => {
+const StoryScroller: React.FC<StoryScrollerProps> = ({ currentChapter, onEnterChapter, disabled }) => {
   return (
     <div
       style={{
@@ -44,7 +45,7 @@ const StoryScroller: React.FC<StoryScrollerProps> = ({ currentChapter, onEnterCh
             active={idx === currentChapter}
             title={ch.title}
             description={ch.description}
-            onEnter={() => onEnterChapter(idx)}
+            onEnter={() => { if (!disabled) onEnterChapter(idx); }}
           />
         ))}
       </div>

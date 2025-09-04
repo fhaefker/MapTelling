@@ -260,6 +260,7 @@ const InnerApp: React.FC = () => {
   <Suspense fallback={null}>
   <StoryScroller
         currentChapter={currentChapter}
+  disabled={interactive}
         onEnterChapter={(idx) => {
           if (!interactive) navigateToChapter(idx);
         }}
@@ -305,6 +306,11 @@ const InnerApp: React.FC = () => {
       {debugEnabled && (
         <div style={{ position:'absolute', bottom:8, right:8, background:'rgba(0,0,0,0.55)', color:'#fff', padding:'4px 8px', fontSize:12, borderRadius:4 }}>
           FPS: {fps}
+        </div>
+      )}
+      {interactive && (
+        <div style={{ position:'fixed', top:8, left:8, background:'rgba(0,0,0,0.55)', color:'#fff', padding:'6px 10px', fontSize:12, borderRadius:4, zIndex:30 }}>
+          Freie Navigation aktiv – Scroll wechselt Kapitel nicht
         </div>
       )}
       {/* Story Creator Panel */}
