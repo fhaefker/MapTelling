@@ -36,6 +36,8 @@ export const CompositeGeoJsonLine = ({
   const { map } = useMap({ mapId });
   const abortRef = useRef<AbortController | null>(null);
   const geojsonRef = useRef<FeatureCollection<LineString | MultiLineString> | null>(null);
+  // Cache of last feature ids/hash to allow lightweight diffing
+  const lastFeatureSigRef = useRef<string | null>(null);
   const sourceId = `${idBase}-src`;
   const glowLayerId = `${idBase}-glow`;
   const mainLayerId = `${idBase}-main`;
@@ -72,9 +74,36 @@ export const CompositeGeoJsonLine = ({
     if (m.getSource(sourceId)) {
       if (updates === 'replace-source') {
         try { (m.getSource(sourceId) as any).setData(geojson as any); } catch {/* ignore */}
+      } else if (updates === 'diff') {
+        // Basic diff: build signature of feature ids + geometry lengths; if unchanged skip setData
+        try {
+          const sig = (() => {
+            const feats = geojson.features || [];
+            let acc = '' + feats.length + '|';
+            for (let i = 0; i < feats.length; i++) {
+              const f: any = feats[i];
+              const id = f.id ?? i;
+              const coords = (f.geometry && (f.geometry as any).coordinates) || [];
+              // Rough geometry length metric (nested depth safe)
+              const len = Array.isArray(coords) ? JSON.stringify(coords).length : 0;
+              acc += id + ':' + len + ';';
+              if (acc.length > 5000) break; // guard huge strings
+            }
+            return acc;
+          })();
+          if (lastFeatureSigRef.current !== sig) {
+            lastFeatureSigRef.current = sig;
+            (m.getSource(sourceId) as any).setData(geojson as any);
+          }
+        } catch { /* ignore diff failure */ }
       }
     } else {
       m.addSource(sourceId, { type: 'geojson', data: geojson });
+      // reset signature cache when (re)creating source
+      try {
+        const feats = geojson.features || [];
+        lastFeatureSigRef.current = '' + feats.length;
+      } catch { lastFeatureSigRef.current = null; }
     }
 
     const ensureLayer = (id: string, paint: Record<string, any>, before?: string) => {

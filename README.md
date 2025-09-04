@@ -140,3 +140,19 @@ Built with MapComponents and MapLibre
 ## 🐛 Issues
 
 Report bugs and feature requests on the [GitHub Issues](https://github.com/fhaefker/MapTelling/issues) page.
+
+## 🐞 Debug & Instrumentation Namespace
+
+Experimental development utilities are exposed via a debug namespace (not for production bundles):
+
+```
+import { DevMetricsOverlay, useLayerChangeLog, useMapFrameRate } from './src/debug';
+
+// Example conditional render (development only)
+{process.env.NODE_ENV !== 'production' && (
+    <DevMetricsOverlay mapId="maptelling-map" />
+)}
+```
+
+These exports aggregate instrumentation hooks and the metrics overlay for quick performance inspection. They rely on MapComponents wrapper events; cost is negligible when not rendered / sampling.
+

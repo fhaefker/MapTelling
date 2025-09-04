@@ -3,6 +3,7 @@ import { MapLibreMap, MlGeoJsonLayer, useMap } from '@mapcomponents/react-maplib
 import { motion } from 'framer-motion';
 import type { FeatureCollection, LineString } from 'geojson';
 import { config } from './config/mapConfig';
+import { ChaptersProvider, useChapters } from './context/ChaptersContext';
 import StoryOverlay from './components/StoryOverlay';
 import NavigationControls from './components/NavigationControls';
 import ModeToggle from './components/ModeToggle';
@@ -19,7 +20,7 @@ import { usePerformanceInstrumentation } from './hooks/usePerformanceInstrumenta
 import { useViewportSync } from './hooks/useViewportSync';
 import DevMetricsOverlay from './components/DevMetricsOverlay';
 
-const MapTellingApp: React.FC = () => {
+const InnerApp: React.FC = () => {
   const [interactive, setInteractive] = useState<boolean>(false);
   const [isMapLoaded, setIsMapLoaded] = useState<boolean>(false);
   const [trackData, setTrackData] = useState<FeatureCollection<LineString> | null>(null);
@@ -71,7 +72,7 @@ const MapTellingApp: React.FC = () => {
     next: handleNext,
     previous: handlePrevious,
     togglePlay: togglePlayPause,
-  } = useChapterNavigation({ mapId: 'maptelling-map', chapters: config.chapters });
+  } = useChapterNavigation({ mapId: 'maptelling-map', chapters: useChapters().chapters });
 
   // Scroll-driven Story integration moved below in JSX
 
@@ -84,10 +85,10 @@ const MapTellingApp: React.FC = () => {
         mapId="maptelling-map"
         options={{
           style: config.style,
-          center: config.chapters[0].location.center,
-          zoom: config.chapters[0].location.zoom,
-          bearing: config.chapters[0].location.bearing || 0,
-          pitch: config.chapters[0].location.pitch || 0,
+            center: useChapters().chapters[0].location.center,
+            zoom: useChapters().chapters[0].location.zoom,
+            bearing: useChapters().chapters[0].location.bearing || 0,
+            pitch: useChapters().chapters[0].location.pitch || 0,
       interactive: interactive,
           attributionControl: false,
         }}
@@ -120,19 +121,19 @@ const MapTellingApp: React.FC = () => {
       />
 
       {/* Markers for chapters */}
-      <MarkerLayer mapId="maptelling-map" activeChapterId={config.chapters[currentChapter].id} />
+  <MarkerLayer mapId="maptelling-map" activeChapterId={useChapters().chapters[currentChapter].id} />
 
       {/* Story Overlay */}
       <StoryOverlay 
-        chapter={config.chapters[currentChapter]}
+        chapter={useChapters().chapters[currentChapter]}
         chapterIndex={currentChapter}
-        totalChapters={config.chapters.length}
+        totalChapters={useChapters().total}
       />
 
       {/* Navigation Controls */}
       <NavigationControls
         currentChapter={currentChapter}
-        totalChapters={config.chapters.length}
+        totalChapters={useChapters().total}
         isPlaying={isPlaying}
         onPrevious={handlePrevious}
         onNext={handleNext}
@@ -152,12 +153,18 @@ const MapTellingApp: React.FC = () => {
       <motion.div 
         className="progress-bar"
         initial={{ scaleX: 0 }}
-        animate={{ scaleX: (currentChapter + 1) / config.chapters.length }}
+  animate={{ scaleX: (currentChapter + 1) / useChapters().total }}
         transition={{ duration: 0.5 }}
       />
   {import.meta.env?.MODE !== 'production' && <DevMetricsOverlay mapId="maptelling-map" />}
     </div>
   );
 };
+
+const MapTellingApp: React.FC = () => (
+  <ChaptersProvider chapters={config.chapters}>
+    <InnerApp />
+  </ChaptersProvider>
+);
 
 export default MapTellingApp;
