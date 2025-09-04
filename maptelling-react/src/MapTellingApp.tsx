@@ -12,47 +12,22 @@ import InsetMap from './components/InsetMap';
 import TerrainManager from './components/TerrainManager';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import './MapTellingApp.css';
+import InteractionController from './components/InteractionController';
+import TrackCompositeLayer from './components/TrackCompositeLayer';
+import { useChapterNavigation } from './hooks/useChapterNavigation';
 
 const MapTellingApp: React.FC = () => {
-  const [currentChapter, setCurrentChapter] = useState<number>(0);
-  const [isPlaying, setIsPlaying] = useState<boolean>(false);
-  const [isMapLoaded, setIsMapLoaded] = useState<boolean>(false);
   const [interactive, setInteractive] = useState<boolean>(false);
+  const [isMapLoaded, setIsMapLoaded] = useState<boolean>(false);
   const [trackData, setTrackData] = useState<FeatureCollection<LineString> | null>(null);
   
   const mapHook = useMap({
     mapId: 'maptelling-map',
   });
 
-  // Initialize map with first chapter
+  // Map load flag
   useEffect(() => {
-    if (!mapHook.map) return;
-    
-    setIsMapLoaded(true);
-    
-    // Set initial camera position
-    const firstChapter = config.chapters[0];
-    mapHook.map.map.jumpTo({
-      center: firstChapter.location.center,
-      zoom: firstChapter.location.zoom,
-      bearing: firstChapter.location.bearing || 0,
-      pitch: firstChapter.location.pitch || 0,
-    });
-
-    // ensure interactivity matches state
-    if (interactive) {
-      mapHook.map.map.scrollZoom.enable();
-      mapHook.map.map.dragPan.enable();
-      mapHook.map.map.keyboard.enable();
-      mapHook.map.map.doubleClickZoom.enable();
-      mapHook.map.map.touchZoomRotate.enable();
-    } else {
-      mapHook.map.map.scrollZoom.disable();
-      mapHook.map.map.dragPan.disable();
-      mapHook.map.map.keyboard.disable();
-      mapHook.map.map.doubleClickZoom.disable();
-      mapHook.map.map.touchZoomRotate.disable();
-    }
+    if (mapHook.map) setIsMapLoaded(true);
   }, [mapHook.map]);
 
   // Load track data from public assets (no Mapbox dependency)
@@ -70,92 +45,23 @@ const MapTellingApp: React.FC = () => {
       });
   }, []);
 
-  // Handle chapter navigation
-  const navigateToChapter = (chapterIndex: number) => {
-    if (!mapHook.map || chapterIndex < 0 || chapterIndex >= config.chapters.length) return;
+  // Chapter navigation hook (centralised)
+  const {
+    currentChapter,
+    isPlaying,
+    goToChapter: navigateToChapter,
+    next: handleNext,
+    previous: handlePrevious,
+    togglePlay: togglePlayPause,
+  } = useChapterNavigation({ mapId: 'maptelling-map', chapters: config.chapters });
 
-    const chapter = config.chapters[chapterIndex];
-    setCurrentChapter(chapterIndex);
+  // Scroll-driven Story integration moved below in JSX
 
-    mapHook.map.map.flyTo({
-      center: chapter.location.center,
-      zoom: chapter.location.zoom,
-      bearing: chapter.location.bearing || 0,
-      pitch: chapter.location.pitch || 0,
-      speed: 0.8,
-      curve: 1.42,
-      essential: true,
-    });
-  };
-
-  // Auto-play functionality
-      {/* Scroll-driven chapters */}
-      <StoryScroller
-        currentChapter={currentChapter}
-        onEnterChapter={(idx) => {
-          if (!interactive) {
-            navigateToChapter(idx);
-          }
-        }}
-      />
-
-      {/* Markers for chapters */}
-      <MarkerLayer mapId="maptelling-map" activeChapterId={config.chapters[currentChapter].id} />
-
-  useEffect(() => {
-    if (!isPlaying) return;
-
-    const interval = setInterval(() => {
-      setCurrentChapter((current) => {
-        const next = current + 1;
-        if (next >= config.chapters.length) {
-          setIsPlaying(false);
-          return current;
-        }
-        navigateToChapter(next);
-        return next;
-      });
-    }, 4000);
-
-    return () => clearInterval(interval);
-  }, [isPlaying]);
-
-  const handlePrevious = () => {
-    const prevIndex = Math.max(0, currentChapter - 1);
-    navigateToChapter(prevIndex);
-  };
-
-  const handleNext = () => {
-    const nextIndex = Math.min(config.chapters.length - 1, currentChapter + 1);
-    navigateToChapter(nextIndex);
-  };
-
-  const togglePlayPause = () => {
-    setIsPlaying(!isPlaying);
-  };
-
-  const toggleInteractive = () => {
-    const next = !interactive;
-    setInteractive(next);
-    if (!mapHook.map) return;
-    if (next) {
-      mapHook.map.map.scrollZoom.enable();
-      mapHook.map.map.dragPan.enable();
-      mapHook.map.map.keyboard.enable();
-      mapHook.map.map.doubleClickZoom.enable();
-      mapHook.map.map.touchZoomRotate.enable();
-    } else {
-      mapHook.map.map.scrollZoom.disable();
-      mapHook.map.map.dragPan.disable();
-      mapHook.map.map.keyboard.disable();
-      mapHook.map.map.doubleClickZoom.disable();
-      mapHook.map.map.touchZoomRotate.disable();
-    }
-  };
+  const toggleInteractive = () => setInteractive(p => !p);
 
   return (
     <div className="map-telling-app">
-      {/* MapLibre Map with MapComponents */}
+    {/* MapLibre Map with MapComponents */}
       <MapLibreMap 
         mapId="maptelling-map"
         options={{
@@ -170,6 +76,9 @@ const MapTellingApp: React.FC = () => {
         style={{ width: '100%', height: '100vh' }}
       />
 
+    {/* Centralised interaction toggle */}
+    <InteractionController mapId="maptelling-map" interactive={interactive} />
+
   {/* Optional 3D Terrain */}
   <TerrainManager mapId="maptelling-map" config={config.terrain} />
 
@@ -177,43 +86,23 @@ const MapTellingApp: React.FC = () => {
     <ModeToggle isInteractive={interactive} onToggle={toggleInteractive} />
       
       {/* GeoJSON Track Layer with MapComponents */}
-    {isMapLoaded && trackData && (
-        <MlGeoJsonLayer
-          mapId="maptelling-map"
-      geojson={trackData}
-          type="line"
-          defaultPaintOverrides={{
-            line: {
-              'line-color': '#ff6b6b',
-              'line-width': 4,
-              'line-opacity': 0.8,
-            },
-          }}
-          layerId="track-line"
-        />
+      {isMapLoaded && trackData && (
+        <TrackCompositeLayer mapId="maptelling-map" data={trackData} />
       )}
 
-  {/* Inset Map (Overview) */}
+      {/* Inset Map (Overview) */}
   {config.showInset && <InsetMap mainMapId="maptelling-map" />}
+      
+      {/* Scroll-driven chapters */}
+      <StoryScroller
+        currentChapter={currentChapter}
+        onEnterChapter={(idx) => {
+          if (!interactive) navigateToChapter(idx);
+        }}
+      />
 
-      {/* Track Glow Effect */}
-    {isMapLoaded && trackData && (
-        <MlGeoJsonLayer
-          mapId="maptelling-map"
-      geojson={trackData}
-          type="line"
-          defaultPaintOverrides={{
-            line: {
-              'line-color': '#ff6b6b',
-              'line-width': 8,
-              'line-opacity': 0.3,
-              'line-blur': 2,
-            },
-          }}
-          layerId="track-glow"
-          insertBeforeLayer="track-line"
-        />
-      )}
+      {/* Markers for chapters */}
+      <MarkerLayer mapId="maptelling-map" activeChapterId={config.chapters[currentChapter].id} />
 
       {/* Story Overlay */}
       <StoryOverlay 
