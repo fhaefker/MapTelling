@@ -7,6 +7,109 @@ API Surface Hash: `f4ca9a7c4de6`  | Components: 673 | Hooks: 27 | Utilities: 98 
 <!-- API_SURFACE_SUMMARY_END -->
 
 ---
+## 0. Quick Navigation & Cheat Sheet
+
+### 0.1 Table of Contents (Human)
+1 Core Philosophy (sec1)
+2 Primary Package / Components (sec2)
+3 Template Repository (sec3)
+4 Dev Tooling (sec4)
+5 Ecosystem Repos (sec5)
+6 Topics (sec6)
+7 Workflow Patterns (sec7)
+8 Strengths (sec8)
+9 Limitations (sec9)
+10 Integration Patterns (sec10)
+11 Conventions (sec11)
+12 Future Enhancements (sec12)
+13 Capability Checklist (sec13)
+14 Commands (sec14)
+15 Imperative Fallback (sec15)
+16 Component Catalog (sec16)
+36 Export Surface (sec36)
+37 Architecture Flow (sec37)
+38 Wrapper Internals (sec38)
+39 Core Props (sec39)
+40 Lifecycle Timeline (sec40)
+41 Redux Store (sec41)
+42 Protocol Handlers (sec42)
+43 Theme/UI (sec43)
+44 Contribution Workflow (sec44)
+45 Test Stack (sec45)
+46 Performance Internals (sec46)
+47 Extension Guidelines (sec47)
+48 Anti-Patterns (sec48)
+49 Release/Build (sec49)
+50 Refactor Targets (sec50)
+51 Hook Reference (sec51)
+52 Protocol Sequence (sec52)
+53 Wrapper Events (sec53)
+54 MapStore Usage (sec54)
+55 Theming & Style Switch (sec55)
+56 Perf Instrumentation (sec56)
+57 Deprecation/Migration (sec57)
+58 Local Upstream Dev (sec58)
+59 Security Hardening (sec59)
+60 Upgrade Checklist (sec60)
+
+### 0.2 Action→Section Quick Map
+| Goal | Section | Notes |
+|------|---------|-------|
+| Add a GeoJSON layer | 39 / MlGeoJsonLayer Props | Use `options.paint` not deprecated `paint` |
+| Sync two maps | 40 / viewportchange event | Mirror center/zoom with debounce |
+| Add custom protocol | 52 + 42 | Register via `useAddProtocol` |
+| Build layer tree UI | 41 + 45 | Use Redux MapStore selectors |
+| Animate camera path | 51 (useCameraFollowPath) | Provide GeoJSON LineString |
+| Export map image | 51 (useExportMap) | Await blob, create download link |
+| Add new component upstream | 44 | Scaffold + story + export |
+| Detect API drift | API Summary + extraction script | Compare hash in summary |
+| Migrate deprecated props | 57 | Replace `paint/layout` with `options` |
+| Performance audit start | 56 | Instrument wrapper events |
+
+### 0.3 Core Objects At a Glance
+| Object | Type | Key Fields / Methods | Section |
+|--------|------|----------------------|---------|
+| MapComponentsProvider | Context Provider | registerMap, removeMap, getMap | 37 |
+| MapLibreGlWrapper | Class Wrapper | addLayer/addSource/addImage/on/cleanup, wrapper.events | 38 |
+| MlGeoJsonLayer | Component | geojson, options.paint/layout, event handlers | 39 |
+| MapStore | Redux Aggregate | mapConfigs, setLayerInMapConfig, updateLayerOrder | 41 |
+| Protocol Handlers | Functions | CSVProtocolHandler... | 42/52 |
+
+### 0.4 Machine Index (Stable Tokens)
+Tokens placed inline for fast grep: [TOK:HOOKS] [TOK:COMPONENTS] [TOK:WRAPPER] [TOK:REDUX] [TOK:PROTOCOL] [TOK:THEME] [TOK:PERF] [TOK:SECURITY] [TOK:UPGRADE]
+
+### 0.5 Machine-Readable JSON Summary
+```json
+{
+  "version":"1.0",
+  "apiHash":"f4ca9a7c4de6",
+  "counts":{"components":673,"hooks":27,"utilities":98},
+  "coreHooks":["useMap","useMapState","useLayer","useSource","useCameraFollowPath","useExportMap"],
+  "deprecatedProps":{"MlGeoJsonLayer":["paint","layout"]},
+  "wrapperEvents":["layerchange","viewportchange","addsource","addlayer"],
+  "storeActions":["setMapConfig","removeMapConfig","setLayerInMapConfig","removeLayerFromMapConfig","updateLayerOrder","setMasterVisible"],
+  "protocols":["csv","osm","topojson","xml"],
+  "perfHotspots":["setStyle","largeGeoJSON","domMarkers"]
+}
+```
+
+### 0.6 Search Hints
+| Need | Grep Pattern |
+|------|--------------|
+| All hooks | `use[A-Z]` |
+| Wrapper events | `viewportchange` |
+| Deprecated usage | `MlGeoJsonLayer` & `paint=` |
+| Protocol handlers | `ProtocolHandler` |
+| Store actions | `setMapConfig` |
+
+### 0.7 Update Procedure (Doc Maintenance)
+1. Run extraction script → confirm hash.
+2. If hash changed intentionally, update JSON summary block apiHash.
+3. If new hooks/components: append to machine index arrays.
+4. Validate tokens present (grep `[TOK:`). 
+5. Commit with `docs(capabilities): sync api hash` message.
+
+---
 ## 1. Core Philosophy
 - Declarative GIS application development in React.
 - Component-driven abstraction over MapLibre GL (and historically interop with other engines like Leaflet/OpenLayers references via topics).
