@@ -26,18 +26,19 @@ jobs:
         run: npm run extract:api
       - name: API surface diff
         run: |
-          if [ -f docs/generated/mapcomponents-api.meta.json ]; then
-            HASH_NEW=$(jq -r '.hash' docs/generated/mapcomponents-api.meta.json)
+          META_PATH=maptelling-react/docs/generated/mapcomponents-api.meta.json
+          if [ -f "$META_PATH" ]; then
+            HASH_NEW=$(jq -r '.hash' "$META_PATH")
           else
-            echo 'Meta file missing'; exit 1; fi
-          # Attempt to retrieve previous commit version of meta file
-          git show HEAD^:maptelling-react/docs/generated/mapcomponents-api.meta.json > /tmp/prev.json 2>/dev/null || echo '{}' > /tmp/prev.json
+            echo "Meta file missing at $META_PATH"; exit 1; fi
+          # Attempt previous commit version
+          git show HEAD^:$META_PATH > /tmp/prev.json 2>/dev/null || echo '{}' > /tmp/prev.json
           HASH_OLD=$(jq -r '.hash' /tmp/prev.json)
           echo "Previous hash: $HASH_OLD" || true
           echo "Current  hash: $HASH_NEW" || true
           if [ "$HASH_OLD" != "null" ] && [ "$HASH_OLD" != "" ] && [ "$HASH_NEW" != "$HASH_OLD" ]; then
-             echo "API surface changed (hash mismatch)";
-             echo "::warning title=API Drift Detected::Surface hash changed from $HASH_OLD to $HASH_NEW";
+            echo "API surface changed (hash mismatch)";
+            echo "::warning title=API Drift Detected::Surface hash changed from $HASH_OLD to $HASH_NEW";
           else
-             echo "No API drift detected";
+            echo "No API drift detected";
           fi
