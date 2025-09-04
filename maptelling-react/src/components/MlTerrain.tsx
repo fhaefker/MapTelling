@@ -10,6 +10,7 @@ export interface MlTerrainProps {
   tileSize?: 256 | 512;
   sourceId?: string;
   maxzoom?: number;
+  encoding?: 'terrarium' | 'mapbox';
 }
 
 // Declarative terrain toggle component (candidate upstream: RFC_07)
@@ -22,6 +23,7 @@ export const MlTerrain: React.FC<MlTerrainProps> = ({
   tileSize = 512,
   sourceId = 'terrain-dem',
   maxzoom = 14,
+  encoding,
 }) => {
   const { map } = useMap({ mapId });
 
@@ -35,9 +37,9 @@ export const MlTerrain: React.FC<MlTerrainProps> = ({
     const onLoad = () => {
       if (!m.getSource(sourceId)) {
         if (url) {
-          m.addSource(sourceId, { type: 'raster-dem', url, tileSize, maxzoom } as any);
+          m.addSource(sourceId, { type: 'raster-dem', url, tileSize, maxzoom, encoding } as any);
         } else if (tiles) {
-          m.addSource(sourceId, { type: 'raster-dem', tiles, tileSize, maxzoom } as any);
+          m.addSource(sourceId, { type: 'raster-dem', tiles, tileSize, maxzoom, encoding } as any);
         } else {
           return; // nothing to enable
         }

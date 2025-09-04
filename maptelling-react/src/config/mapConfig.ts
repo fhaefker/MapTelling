@@ -98,12 +98,12 @@ export const config: WmsOnlyMapConfig = {
   ],
   showInset: true,
   terrain: {
-    enabled: false,
-    // Example for MapTiler Terrain RGB (requires your own key):
-    // tiles: [
-    //   'https://api.maptiler.com/tiles/terrain-rgb-v2/{z}/{x}/{y}.png?key=YOUR_KEY'
-    // ],
-    // tileSize: 512,
-    // exaggeration: 1.5,
+    enabled: true,
+    // Public AWS Terrarium DEM tiles (no key). Encoding terrarium.
+    tiles: [
+      'https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png'
+    ],
+    tileSize: 256,
+    exaggeration: 1.4,
   },
 };

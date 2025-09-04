@@ -178,7 +178,7 @@ const InnerApp: React.FC = () => {
 
   {/* Optional 3D Terrain */}
   <Suspense fallback={null}>
-    {config.terrain?.tiles && (
+  {config.terrain?.tiles && (
       <MlTerrain
         mapId="maptelling-map"
         enabled={terrainEnabled}
@@ -186,6 +186,7 @@ const InnerApp: React.FC = () => {
         url={config.terrain?.url as any}
         tiles={config.terrain?.tiles as any}
         tileSize={config.terrain?.tileSize as any}
+    encoding={'terrarium' as any}
       />
     )}
   </Suspense>
