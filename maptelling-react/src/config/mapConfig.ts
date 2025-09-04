@@ -2,9 +2,8 @@ import type { MapConfig } from '../types/story';
 
 // Note: Use a token-free, public demo style to avoid Mapbox. Replace with your own style if needed.
 export const config: MapConfig = {
-  // Using WhereGroup (demo) vector tiles style. Adjust if a different WhereGroup style endpoint is preferred.
-  // Assumption: public accessible style.json endpoint. Replace with the exact provided demo URL if different.
-  style: 'https://maps.wheregroup.com/styles/bright/style.json',
+  // WhereGroup tileserver demo style (corrected URL)
+  style: 'https://wms.wheregroup.com/tileserver/styles/bright/style.json',
   chapters: [
     {
       id: 'Day00_Overview',

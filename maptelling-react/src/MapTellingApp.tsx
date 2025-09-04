@@ -13,6 +13,7 @@ const NavigationControls = lazy(() => import('./components/NavigationControls'))
 const ModeToggle = lazy(() => import('./components/ModeToggle'));
 const MarkerLayer = lazy(() => import('./components/MarkerLayer'));
 const StoryScroller = lazy(() => import('./components/StoryScroller'));
+const StoryCreator = lazy(() => import('./components/StoryCreator'));
 const InsetMap = lazy(() => import('./components/InsetMap'));
 const MlTerrain = lazy(() => import('./components/MlTerrain'));
 import 'maplibre-gl/dist/maplibre-gl.css';
@@ -228,6 +229,10 @@ const InnerApp: React.FC = () => {
           FPS: {fps}
         </div>
       )}
+      {/* Story Creator Panel */}
+      <Suspense fallback={null}>
+        <StoryCreator />
+      </Suspense>
   {/* DevMetricsOverlay removed */}
   </div>
   </MapErrorBoundary>
