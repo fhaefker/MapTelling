@@ -14,6 +14,25 @@ export interface ProtocolHandlerOptions {
   transform?: (raw: string, params: URLSearchParams) => Promise<any> | any;
 }
 
+/** Lightweight CSV/TSV parser (no quotes escape handling beyond basic split) */
+export const parseDelimited = (raw: string, delimiter: string) => {
+  const lines = raw.trim().split(/\r?\n/);
+  if (!lines.length) return [];
+  const header = lines[0].split(delimiter).map(h => h.trim());
+  return lines.slice(1).filter(l => l).map(line => {
+    const cells = line.split(delimiter);
+    const obj: Record<string, any> = {};
+    header.forEach((h, i) => { obj[h] = cells[i] !== undefined ? cells[i].trim() : ''; });
+    return obj;
+  });
+};
+
+export const csvOrTsvTransform = async (raw: string, params: URLSearchParams) => {
+  const format = (params.get('format') || 'csv').toLowerCase();
+  const delim = format === 'tsv' ? '\t' : ',';
+  return parseDelimited(raw, delim);
+};
+
 export const createTextProtocolHandler = (opts: ProtocolHandlerOptions = {}) => {
   const { maxBytes = 5_000_000, allowPattern, transform } = opts;
   return async function handler(request: any) {
@@ -28,8 +47,8 @@ export const createTextProtocolHandler = (opts: ProtocolHandlerOptions = {}) => 
     if (blob.size > maxBytes) throw new Error('Payload too large');
     const text = await blob.text();
     const qs = parsed.searchParams;
-    const out = transform ? await transform(text, qs) : { text };
-    return { data: out };
+  const out = transform ? await transform(text, qs) : { text };
+  return { data: out };
   };
 };
 

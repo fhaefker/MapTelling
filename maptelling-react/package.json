@@ -34,6 +34,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "extract:api": "ts-node -P tsconfig.scripts.json ./scripts/extract-mapcomponents-api.ts",
-    "test": "jest"
+  "test": "jest",
+  "build:size": "node ./scripts/report-bundle-size.cjs"
   }
 }

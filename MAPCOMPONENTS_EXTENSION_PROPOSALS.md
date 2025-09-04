@@ -160,6 +160,7 @@ Release Notes Draft Segments:
 - CompositeGeoJsonLine: single-source dual-layer line with optional glow.
 - Instrumentation hooks: useMapFrameRate, useLayerChangeLog, usePerformanceInstrumentation.
 - Protocol template utilities: createTextProtocolHandler, useRegisterProtocol.
+  - CSV/TSV convenience transform (query param format=tsv) via `csvOrTsvTransform` helper.
 - Deprecation utilities: warnDeprecated, GeoJsonLayerCompat for MlGeoJsonLayer paint/layout migration.
 ```
 
@@ -201,7 +202,7 @@ Scoring heuristic: Impact (user value / ecosystem reuse) weighted 2x, Effort (es
 | CompositeGeoJsonLine | Medium | High | 3 | DONE | PR #2 | Glow + basic feature signature diff (skips redundant setData) |
 | useMapFrameRate | Medium | Medium | 4 | DONE | PR #3 | Exported via debug namespace |
 | useLayerChangeLog | Medium | Medium | 5 | DONE | PR #3 | Includes remove/type tracking |
-| Protocol template | Low | Medium | 6 | DONE | PR #4 | Consider CSV helper follow-up |
+| Protocol template | Low | Medium | 6 | DONE | PR #4 | Includes CSV/TSV transform helper |
 | Deprecation guard util (+Compat) | Low | Low | 7 | DONE | PR #5 | One-time warnings covered |
 | DevMetricsOverlay *(optional)* | Medium | Medium | 8 | DONE | PR #6 (optional) | Mark experimental in docs |
 
@@ -215,7 +216,7 @@ Review Load Balancing:
 
 Size / Tree-Shaking Considerations:
 - `sideEffects:false` set; debug namespace ensures optional cost. Local prod build ≈5.2 MB dist (includes maplibre + assets); overlay only bundled when imported.
- - Follow-up: add CI size gate & baseline snapshot (pending).
+ - Added `npm run build:size` script writing `dist-size.json` (baseline for future CI gate).
 
 ### 9. Acceptance Criteria Summary
 | Contribution | Criteria |
