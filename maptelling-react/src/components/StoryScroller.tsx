@@ -1,6 +1,6 @@
 import React from 'react';
 import { useInView } from 'react-intersection-observer';
-import { config } from '../config/mapConfig';
+import { useChapters } from '../context/ChaptersContext';
 
 interface StoryScrollerProps {
   currentChapter: number;
@@ -10,6 +10,7 @@ interface StoryScrollerProps {
 }
 
 const StoryScroller: React.FC<StoryScrollerProps> = ({ currentChapter, onEnterChapter, disabled, passThrough }) => {
+  const { chapters } = useChapters();
   return (
     <div
       style={{
@@ -37,9 +38,9 @@ const StoryScroller: React.FC<StoryScrollerProps> = ({ currentChapter, onEnterCh
         <p style={{ margin: 0 }}>Scroll durch die Kapitel oder nutze die Navigation.</p>
       </div>
 
-      {/* Chapters */}
+      {/* Chapters (dynamic from context) */}
       <div style={{ maxWidth: 720, margin: '0 auto' }}>
-        {config.chapters.map((ch, idx) => (
+        {chapters.map((ch, idx) => (
           <ChapterStep
             key={ch.id}
             index={idx}
