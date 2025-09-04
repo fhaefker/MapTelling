@@ -1,6 +1,43 @@
-# Getting Started with Create React App
+# MapTelling Application
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+MapTelling ist eine Storytelling-Demonstration auf Basis von `@mapcomponents/react-maplibre` mit Fokus auf:
+- Scroll-/Kapitel-basierte Kamerafahrten (Chapter Navigation Hook)
+- Deklarative Layer (Route, Marker) und optionalem Terrain
+- Performance-orientierter Composite Line Layer (Glow + Main)
+
+Siehe `MAPCOMPONENTS_CAPABILITIES.md` für vollständige Architektur-Referenz.
+
+## Architektur Überblick
+```
+ChaptersProvider
+	└─ MapTellingApp
+			 ├─ MapLibreMap (mapId="maptelling-map")
+			 ├─ InteractionController
+			 ├─ TerrainManager (Toggle)
+			 ├─ CompositeGeoJsonLine (Route)
+			 ├─ MarkerLayer (Kapitel Marker)
+			 ├─ InsetMap (optional)
+			 ├─ StoryScroller (Scroll -> Kapitel Index)
+			 ├─ StoryOverlay (Titel/Bild/Text, sanitisiert)
+			 ├─ NavigationControls (Play/Pause, Prev/Next)
+			 └─ Progress Bar
+```
+
+## Performance Quick Wins (implementiert)
+| Maßnahme | Beschreibung |
+|----------|--------------|
+| Prefetch Style | Remote Style wird vor Nutzung geladen -> weniger Flash |
+| Abort Controller Track Fetch | Verhindert Zombie Requests |
+| Memo Chapter Start | Weniger wiederholte Zugriffskosten |
+| Stabile Layer IDs | Verhindert Duplikat-Layer |
+| Terrain Toggle | Terrain optional (Performance Ersparnis) |
+| Sanitizer | Verhindert XSS im Overlay |
+
+Weitere geplante Optimierungen siehe `MAPTELLING_OPTIMIZATION_BACKLOG.md`.
+
+# Getting Started (CRA Basis)
+
+Dieses Projekt wurde initial mit [Create React App](https://github.com/facebook/create-react-app) erstellt.
 
 ## Available Scripts
 

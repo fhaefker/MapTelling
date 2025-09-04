@@ -1,4 +1,5 @@
 import React from 'react';
+import { useT } from '../i18n/I18nProvider';
 
 interface ModeToggleProps {
   isInteractive: boolean;
@@ -6,6 +7,7 @@ interface ModeToggleProps {
 }
 
 const ModeToggle: React.FC<ModeToggleProps> = ({ isInteractive, onToggle }) => {
+  const t = useT();
   return (
     <div style={{ position: 'fixed', top: 12, left: 12, zIndex: 10 }}>
       <button
@@ -19,11 +21,11 @@ const ModeToggle: React.FC<ModeToggleProps> = ({ isInteractive, onToggle }) => {
           cursor: 'pointer',
           boxShadow: '0 2px 6px rgba(0,0,0,0.1)',
         }}
-        aria-pressed={isInteractive}
-        aria-label={isInteractive ? 'Switch to story mode' : 'Switch to free navigation mode'}
-        title={isInteractive ? 'Story Mode' : 'Free Navigation'}
+  aria-pressed={isInteractive}
+  aria-label={isInteractive ? t('mode.story.aria') : t('mode.free.aria')}
+  title={isInteractive ? t('mode.story') : t('mode.free')}
       >
-        {isInteractive ? 'Story Mode' : 'Free Navigation'}
+  {isInteractive ? t('mode.story') : t('mode.free')}
       </button>
     </div>
   );

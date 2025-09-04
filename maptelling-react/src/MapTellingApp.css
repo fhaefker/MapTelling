@@ -6,6 +6,26 @@
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
+.skip-link {
+  position: absolute;
+  left: -999px;
+  top: auto;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  color: #fff;
+  background: #000;
+  padding: 8px 12px;
+  border-radius: 4px;
+  z-index: 2000;
+}
+.skip-link:focus {
+  left: 16px;
+  top: 16px;
+  width: auto;
+  height: auto;
+}
+
 .map-container {
   position: absolute;
   top: 0;

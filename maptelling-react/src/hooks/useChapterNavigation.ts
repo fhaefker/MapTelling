@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useMap } from '@mapcomponents/react-maplibre';
-import type { Chapter } from '../config/mapConfig';
+import type { Chapter } from '../types/story';
 
 /**
  * useChapterNavigation

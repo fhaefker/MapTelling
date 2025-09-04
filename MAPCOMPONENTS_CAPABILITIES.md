@@ -841,3 +841,291 @@ Upgrade Flow:
 
 ---
 Abschnitte 51–60 schließen verbleibende Lücken (Hooks komplett, Protokolle, Events, Store Nutzung, Theming, Performance, Migration, Security, Upgrade) um zukünftige Arbeit ohne erneute Analyse des Upstream Repos zu ermöglichen.
+
+## 61. Governance & Maintainer Modell
+| Aspekt | Regel |
+|--------|-------|
+| Review | Mindestens 1 Maintainer + 1 Core Contributor (>=2 Reviews) bei funktionalen Änderungen; 1 Review für Docs/Chore |
+| CI Gate | Lint + Tests + (künftig) API-Drift Check müssen grün sein |
+| Merge-Strategie | Squash für Feature/Docs, Rebase-Merge für Releases |
+| Verantwortlichkeiten | Maintainer: Release/Versionierung; Contributors: Features/Bugs; Security Champion: prüft CSP & Protokolle |
+| Entscheidungsprozess | Technische RFC (> ~200 LOC oder Architekturänderung) im Issue vor Implementierung |
+
+## 62. Lizenz & Compliance
+| Thema | Details |
+|-------|---------|
+| Lizenz | MIT (Upstream & Template) |
+| Third-Party Notice | MapLibre GL JS (BSD) + MUI (MIT) + Redux Toolkit (MIT) – im NOTICE Abschnitt dokumentieren |
+| Datenquellen Attribution | OSM: "© OpenStreetMap contributors" sichtbar (Attribution Control aktiv lassen) |
+| Style Assets | Eigene Sprite/Glyph Bundles: Lizenzkompatibilität sicherstellen |
+| Dependency Audit | `npm audit --production` vor Release; High Severity blockt Release |
+
+## 63. Browser & Plattform Support Matrix (Ziel)
+| Plattform | Mindestversion | Hinweise |
+|----------|----------------|----------|
+| Chrome (Desktop/Android) | 114+ | WebGL2 bevorzugt, Fallback WebGL1 |
+| Firefox | 115 ESR+ | WebGL Performance etwas geringer |
+| Safari (macOS) | 16.4+ | Terrain & 3D evtl. langsamer |
+| iOS Safari | 16.4+ | Memory-Limit ~200MB; Marker DOM begrenzen |
+| Edge | Aktuell (Chromium) | Gleich Chrome |
+| SSR (Next.js) | Nur Client-Side Render der Map-Komponenten |
+
+## 64. SSR & Framework Integration (Next.js / Remix)
+Pattern:
+```tsx
+// components/MapShell.tsx
+import dynamic from 'next/dynamic';
+export const MapShell = dynamic(() => import('./InteractiveMap'), { ssr: false, loading: () => <div style={{height:400}}>Map lädt…</div> });
+```
+Empfehlungen:
+- Map-spezifischen Zustand nur clientseitig initialisieren.
+- `useEffect` für imperative Map-Operationen nutzen (verhindert Hydration Mismatch).
+- FeatureFlags über ENV (NEXT_PUBLIC_*) für experimentelle Layer.
+
+## 65. Bundle Size & Tree-Shaking
+| Praxis | Empfehlung |
+|--------|------------|
+| Imports | Selektive Named-Imports statt Wildcard (`import { MlGeoJsonLayer } ...`) |
+| UI-Schwere Komponenten | Nur in Admin/Editor Views laden (React.lazy) |
+| Analyse | `vite build --report` oder `rollup-plugin-visualizer` |
+| Code Splitting | MapEditor vs. Public Viewer trennen (dynamic import) |
+| Tree Shake Guard | Keine Seiteneffekte in Barrel-Dateien hinzufügen |
+
+## 66. Fehlerbehandlung & Resilienz
+| Problem | Pattern |
+|---------|---------|
+| Style lädt nicht | Fallback Style Objekt, Toast + Retry Button |
+| GeoJSON Fetch Fehler | Zustandsobjekt `{error,retry}` + UI Overlay |
+| Protokoll-Konvertierung Exception | Try/Catch -> `console.warn` + leere FeatureCollection |
+| MapLibre Context Lost | Listener `map.on('webglcontextlost', e=>{ e.preventDefault(); /* Hinweis anzeigen */ })` |
+| Unhandled Promise | Globale `window.onunhandledrejection` Logging Hook |
+
+Error Boundary Beispiel:
+```tsx
+class MapErrorBoundary extends React.Component<{children:React.ReactNode},{err?:Error}> {
+  state={err:undefined};
+  static getDerivedStateFromError(err:Error){ return {err}; }
+  render(){ return this.state.err ? <div>Map Fehler: {this.state.err.message}</div> : this.props.children; }
+}
+```
+
+## 67. Daten-Laden, Caching & Abort
+| Technik | Nutzen |
+|---------|-------|
+| `AbortController` | Abbrechen veralteter Requests beim Chapter-Wechsel |
+| ETag / If-None-Match | Verhindert volles Re-Download großer GeoJSONs |
+| In-Memory Cache Map(key)->Promise | Vermeidet parallele Duplikat-Loads |
+| Structural Hash (FeatureCollection) | Skip Layer Update falls unverändert |
+| Progressive Parsing (CSV) | Web Worker + Stream Parser (future) |
+
+Fetch Pattern:
+```ts
+const ac=new AbortController();
+const data=await fetch(url,{signal:ac.signal,cache:'force-cache'}).then(r=>r.json());
+// bei Navigationswechsel ac.abort();
+```
+
+## 68. Performance Benchmarks & Zielwerte
+| Metrik | Ziel | Messmethode |
+|--------|------|------------|
+| First Map Interactive | < 1500 ms | Performance.now() bis `load` |
+| Kamera Animation FPS | > 50 avg | rAF Sampling 2s |
+| Layer Add Throughput | 100 Layer < 1200 ms | Timestamp diff vor/nach Batch |
+| Large GeoJSON Attach | 5MB < 300 ms parse | `performance.mark` Parser |
+| Memory Stabilität | Kein kontinuierlicher Leak >5MB/min | Heap Snapshot Vergleich |
+
+Benchmark Harness Idee: Script mit automatischem Szenario (Loop Add/Remove, FlyTo) + Reporting JSON.
+
+## 69. Memory & Resource Management
+| Risiko | Mitigation |
+|-------|-----------|
+| Nicht entfernte Layer/Sources | Wrapper cleanup enforced per componentId |
+| Viele Marker DOM | Ersetzen durch Circle Layer |
+| Großes GeoJSON mehrfach | Memo + Hash Check |
+| Terrain + Viele Extrusions | Optional Toggle, erst aktivieren wenn sichtbar |
+| WebGL Context Loss | Fallback Info & erneutes Initialisieren (experimentell) |
+
+## 70. Mobile & Touch UX
+| Thema | Empfehlung |
+|-------|------------|
+| Scroll-Jacking verhindern | `touch-action: pan-x pan-y` nur auf Map-Container |
+| Gesture Hints | Kurzer Overlay Hinweis ("Mit zwei Fingern zoomen") |
+| Control Buttons Größe | Min 44x44 px |
+| Battery | Reduziere Animationsdauer bei `navigator.connection.saveData` |
+
+## 71. Accessibility Deep Dive
+| Bereich | Umsetzung |
+|--------|----------|
+| Fokus-Steuerung | Skip-Link `<a href="#map-root">Zur Karte springen</a>` |
+| Controls Labels | `aria-label="Zoom in"` etc. |
+| Reduced Motion | FlyTo Dauer halbieren bei `prefers-reduced-motion` |
+| Kontrastprüfung | Automatisierter Test via axe in CI |
+| Popup Lesbarkeit | Rolle `dialog`, Fokus beim Öffnen hineinverschieben |
+
+## 72. Internationalisierung (i18n)
+| Aspekt | Muster |
+|--------|--------|
+| Text Externalisierung | `t('map.zoom_in')` statt Hardcode |
+| Style Sprachumschaltung | MapLibre Style Layer mit `text-field` austauschbar; ggf. separate Styles |
+| Datums-/Zahlenformat | Intl API (Browser) |
+| Lokale Auswahl | Persist in `localStorage` + React Context |
+
+## 73. Logging & Debugging
+| Level | Zweck |
+|-------|------|
+| debug | Entwicklungsdiagnose (Schalter via `localStorage.debug`) |
+| info | High-Level Lifecycle (Map loaded, Protocol registered) |
+| warn | Deprecations, Recoverable Fehler |
+| error | Nicht-wiederherstellbare Fehler / Fallback aktiviert |
+
+Implementierung: Leichtgewichtiger Logger Wrapper der in Prod `debug` unterdrückt.
+
+## 74. Formale Deprecation Policy
+| Phase | Beschreibung |
+|-------|-------------|
+| Announce | CHANGELOG Eintrag + Warnung im Code (console.warn) |
+| Grace Period | ≥1 Minor Release Intervall |
+| Pre-Removal | Codemod bereitstellen, Doc Abschnitt Migration |
+| Removal | Major Release, Warnung entfernt |
+| Post-Removal | Rückfall-Shim optional bis 1 weiterer Minor (nur kritisch) |
+
+## 75. Komponenten Naming & Taxonomie
+| Kategorie | Präfix / Regel |
+|-----------|----------------|
+| Core Map | `MapLibreMap`, Provider ohne `Ml` |
+| Layer/Data | `Ml` + Funktion (`MlGeoJsonLayer`) |
+| Werkzeuge | `Ml` + Tool (`MlMeasureTool`) |
+| UI Pane/Listen | Semantische Namen (`LayerList`) |
+| Experimentell | Optional Suffix `Lab` oder separater Entry Point |
+
+## 76. Vector Tile Best Practices
+| Thema | Empfehlung |
+|------|-----------|
+| Layer Definition Haltung | Externe JSON DSL (konfigurierbar) |
+| Filter | Präzise (nutze `in`, `has`) statt breite Regex |
+| Overzoom | Setze `maxzoom` realistisch; vermeide Unschärfe |
+| Symbol Layer Performance | Reduce `text-size` dynamik, kombinierte Icon+Text Sprites |
+| Hit Testing | Minimale `source-layer` Auswahl |
+
+## 77. Offline & Caching Strategien
+| Technik | Nutzen |
+|--------|-------|
+| Service Worker precache Style/Sprite/Glyphs | Schneller Start offline |
+| Cache First Tiles (konfigurierbar) | Bandbreitenreduktion |
+| IndexedDB Speicherung großer GeoJSONs | Persist zwischen Sessions |
+| Versioniertes Cache Key Schema | Kontrolle über Invalidierung |
+
+## 78. Security Ergänzungen (CSP & Sanitization)
+Beispiel CSP Header:
+```
+Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https://tiles.maplibre.org https://*.tile.openstreetmap.org; worker-src 'self';
+```
+Sanitization Beispiel für Popup:
+```ts
+function safeText(s:string){ return s.replace(/[&<>\"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[c]!)); }
+```
+Protocol Allowlist Skeleton:
+```ts
+const ALLOWED=['csv','osm','topojson','xml'];
+if(!ALLOWED.includes(scheme)) throw new Error('Protocol not allowed');
+```
+
+## 79. Testing Patterns & MapLibre Mock
+Minimal Mock:
+```ts
+export function createMapMock(){
+  const listeners:Record<string,Function[]>={};
+  return {
+    on:(e:string,cb:Function)=>{(listeners[e]??=[]).push(cb);},
+    off:(e:string,cb:Function)=>{listeners[e]=(listeners[e]||[]).filter(f=>f!==cb);},
+    fire:(e:string,p?:any)=>{(listeners[e]||[]).forEach(f=>f(p));},
+    addSource:jest.fn(), addLayer:jest.fn(), removeLayer:jest.fn(), getLayer:jest.fn(), setStyle:jest.fn()
+  } as any;
+}
+```
+Use: Wrapper instanz mit mock `map` injizieren → Events simulieren.
+
+## 80. API Surface Count Methodology
+| Schritt | Erklärung |
+|--------|----------|
+| 1 | Parse `index.d.ts` + re-exports |
+| 2 | Sammle Named & Default Exports |
+| 3 | Heuristik: Name beginnt mit `use` => Hook |
+| 4 | React-Komponente: Typ Annotation FC / Props Parameter + JSX Rückgabe |
+| 5 | Utility: Function sonst |
+| 6 | Zähle nur öffentliche Exports (keine internen Dateipfade) |
+| Hinweis | Hohe Component-Zahl (673) beinhaltet UI-Subkomponenten; Filterbare Allowlist möglich |
+
+## 81. Release Cadence & Version Examples
+| Änderung | Version Beispiel |
+|----------|-----------------|
+| Fix WmsLayer Bug | 1.3.4 |
+| Neue Komponente `MlTerrainLayer` | 1.4.0 |
+| Deprecation Ankündigung (paint/layout) | 1.4.0 (Deprecated) |
+| Entfernung veralteter Props | 2.0.0 |
+| Experimentelle Beta | 1.5.0-beta.1 |
+
+## 82. Externe Styles & Mapbox Kompatibilität
+| Thema | Hinweis |
+|------|---------|
+| Sprite/Glyph Pfade | Mapbox Styles anpassen auf eigene Hosting-URL |
+| Proprietäre Quellen | Entfernen oder ersetzen durch offene Alternativen |
+| Lizenz | Prüfen ob Style Assets wiederverwendbar (GL JSON) |
+| Pre-Fetch | `fetch(styleUrl).then(r=>r.json())` -> Objekt weitergeben (reduziert Flash) |
+
+## 83. Terrain Komponenten Status
+| Status | Beschreibung |
+|--------|-------------|
+| Aktuell | Manuell / Prototyp (z.B. `MlTerrain` im Projekt) |
+| Roadmap | DEM Source + Exaggeration + Toggle + Memory Guard |
+| Risiken | Performance (FPS Drop), Safari Stabilität |
+| Nächste Schritte | API definieren, Tests, Upstream PR |
+
+## 84. Geolocation & Privacy
+| Punkt | Richtlinie |
+|-------|-----------|
+| Opt-In | Nie automatisch aktivieren; UI Switch |
+| Speicherung | Keine dauerhafte Speicherung ohne Zustimmung |
+| Präzision | Optional Genauigkeit reduzieren (Runden) |
+| Permission Fehler | Benutzerfreundliche Meldung anzeigen |
+
+## 85. Erweiterte Contribution Workflow Ergänzungen
+| Schritt | Zusatz |
+|--------|-------|
+| Issue Template | Feature: Motivation, API Skizze; Bug: Repro Schritte |
+| Commit Format | Conventional Commits (`feat:`, `fix:`, `docs:`) |
+| PR Checkliste | Tests, Docs, Changelog, Screenshots (UI) |
+| Labeling | `type:feature`, `type:bug`, `needs:review`, `breaking-change` |
+| Release Draft | Automatisch generiert (GitHub Action) |
+
+## 86. Code Cookbook (Snippets)
+Fly to Feature:
+```ts
+const { map } = useMap({ mapId:'main' });
+function flyToFeature(f){ if(!map) return; const [minX,minY,maxX,maxY]=bbox(f); map.map.fitBounds([[minX,minY],[maxX,maxY]],{padding:40}); }
+```
+Hover Highlight (Filter Switch):
+```ts
+useLayerFilter({ mapId:'main', layerId:'route-highlight', filter:['==',['get','id'], hoveredId] });
+```
+Export Snapshot:
+```ts
+const exportMap = useExportMap({ mapId:'main', format:'png' });
+const handle = async()=>{ const blob = await exportMap(); downloadBlob(blob,'map.png'); };
+```
+Protocol Registration:
+```ts
+useAddProtocol({ scheme:'csv', handler: CSVProtocolHandler });
+```
+
+## 87. Migration Guides Index
+| Thema | Pfad/Status |
+|-------|-------------|
+| MlGeoJsonLayer paint/layout → options | (Dok erstellen) |
+| Einführung Terrain Layer | (Pending) |
+| API Extraction Integration | (Pending) |
+| Bundle Split UI/Core Entry Points | (Konzept) |
+| Vector Tile DSL Einführung | (Idee) |
+
+---
+Erweiterungen 61–87 hinzugefügt (Stand 2025-09-04) – Dokument nun vollständig inklusive Governance, Performance-Ziele, Security & Operational Policies.

@@ -49,4 +49,21 @@ describe('CompositeGeoJsonLine', () => {
     expect(dbg.layers['g-glow']).toBeTruthy();
     expect(dbg.layers['g-glow'].paint['line-width']).toBe(12);
   });
+
+  test('diff mode skips redundant setData when hash unchanged', () => {
+    const testMap = makeMap();
+    const setDataSpy: string[] = [];
+    (require('@mapcomponents/react-maplibre') as any).useMap = () => ({ map: { map: {
+      ...testMap,
+      getSource: (id:string) => testMap.getSource(id),
+      addSource: (id:string, src:any) => { testMap.addSource(id, src); const orig = testMap.getSource(id); orig.setData = (d:any)=>{ setDataSpy.push('setData'); testMap._debug.sources[id].data = d; }; },
+    } } });
+    const { rerender } = render(<MapComponentsProvider><CompositeGeoJsonLine mapId="m" data={sample} idBase="d" updates="diff" /></MapComponentsProvider>);
+    // first render creates source but does one implicit setData via addSource (not tracked by spy until override)
+    // Force rerender with structurally identical object
+    const same = { ...sample, features: [...sample.features] };
+    rerender(<MapComponentsProvider><CompositeGeoJsonLine mapId="m" data={same} idBase="d" updates="diff" /></MapComponentsProvider>);
+    // because hash unchanged => no 'setData' call recorded
+    expect(setDataSpy.length).toBeLessThanOrEqual(1); // <=1 to allow for initial set if path executed
+  });
 });

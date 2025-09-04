@@ -156,3 +156,44 @@ import { DevMetricsOverlay, useLayerChangeLog, useMapFrameRate } from './src/deb
 
 These exports aggregate instrumentation hooks and the metrics overlay for quick performance inspection. They rely on MapComponents wrapper events; cost is negligible when not rendered / sampling.
 
+## Architektur & Performance (Ergänzt)
+
+Optimierungen aus dem Refactor Backlog (Auszug):
+
+- Prefetch MapLibre Style JSON zur Vermeidung von Style Flash
+- Lazy Loading der UI/Narrative Komponenten (Overlay, Scroller, Controls) reduziert Initial Bundle
+- Hash-basierter GeoJSON Diff-Skip (kein redundantes setData)
+- Abort + Timeout beim Track Fetch (Resilienz)
+- Terrain optional (Toggle) via deklarativer `MlTerrain` Komponente
+- `useFpsSample` & FrameRate Instrumentierung für Debug (`?debug`)
+- Error Boundary (`MapErrorBoundary`) fängt Runtime-Fehler ab
+- Logger Utility (`utils/logger.ts`) mit Level-Steuerung via `?debug`
+- Accessibility: Skip-Link, aria Roles/Labels, Test (`a11yNavigation.test.tsx`)
+- Multi-Map Sync Prototyp Hook (`useMapSync`) für zukünftige Erweiterung
+
+Bundle Size Report: `npm run build:size` erstellt `dist-size.json` mit Byte/KiB Angaben.
+
+## Security & CSP
+
+Sanitizing: Kapitelbeschreibungen werden via `safeHtmlLineBreaks` gereinigt (Basis XSS Schutz für Zeilenumbrüche).
+
+Empfohlene Minimal Content-Security-Policy (anpassen je nach Tile Provider):
+
+```
+Content-Security-Policy: \
+    default-src 'self'; \
+    img-src 'self' data: https:; \
+    script-src 'self'; \
+    style-src 'self' 'unsafe-inline'; \
+    connect-src 'self' https://api.maptiler.com https://demotiles.maplibre.org; \
+    worker-src 'self';
+```
+
+Weitere Schritte offen: Protocol Allowlist, Größenlimit für GeoJSON (<2MB) Validierung, Service Worker Offline Cache.
+
+## Offline & Protocol (Step 6)
+
+- Minimaler Service Worker (`service-worker.js`) precachet den Track (GeoJSON) für wiederholte Aufrufe.
+- Protocol Allowlist Scaffold (`utils/protocols.ts`): http / https / data registriert; Erweiterung für custom Schemes möglich.
+- Geplanter Ausbau: Workbox Integration (Runtime Caching für Style & Tiles, Versionierung, Offline Fallback).
+

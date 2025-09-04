@@ -1,61 +1,100 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, Suspense, lazy } from 'react';
+import { I18nProvider, useT } from './i18n/I18nProvider';
+import MapErrorBoundary from './components/MapErrorBoundary';
+import { log } from './utils';
 import { MapLibreMap, MlGeoJsonLayer, useMap } from '@mapcomponents/react-maplibre';
 import { motion } from 'framer-motion';
 import type { FeatureCollection, LineString } from 'geojson';
 import { config } from './config/mapConfig';
 import { ChaptersProvider, useChapters } from './context/ChaptersContext';
-import StoryOverlay from './components/StoryOverlay';
-import NavigationControls from './components/NavigationControls';
-import ModeToggle from './components/ModeToggle';
-import MarkerLayer from './components/MarkerLayer';
-import StoryScroller from './components/StoryScroller';
-import InsetMap from './components/InsetMap';
-import TerrainManager from './components/TerrainManager';
+// Lazy loaded UI/Story components (ST-09)
+const StoryOverlay = lazy(() => import('./components/StoryOverlay'));
+const NavigationControls = lazy(() => import('./components/NavigationControls'));
+const ModeToggle = lazy(() => import('./components/ModeToggle'));
+const MarkerLayer = lazy(() => import('./components/MarkerLayer'));
+const StoryScroller = lazy(() => import('./components/StoryScroller'));
+const InsetMap = lazy(() => import('./components/InsetMap'));
+const MlTerrain = lazy(() => import('./components/MlTerrain'));
 import 'maplibre-gl/dist/maplibre-gl.css';
 import './MapTellingApp.css';
-import InteractionController from './components/InteractionController';
-import CompositeGeoJsonLine from './components/CompositeGeoJsonLine';
+const InteractionController = lazy(() => import('./components/InteractionController'));
+const CompositeGeoJsonLine = lazy(() => import('./components/CompositeGeoJsonLine'));
 import { useChapterNavigation } from './hooks/useChapterNavigation';
-import { usePerformanceInstrumentation } from './hooks/usePerformanceInstrumentation';
 import { useViewportSync } from './hooks/useViewportSync';
-import DevMetricsOverlay from './components/DevMetricsOverlay';
+import { useFpsSample } from './hooks/useFpsSample';
 
 const InnerApp: React.FC = () => {
+  /* QW-01: zentraler Chapters Context (verhindert Mehrfach-Hook Aufrufe) */
+  const chaptersCtx = useChapters();
+  const chapters = chaptersCtx.chapters;
+  const totalChapters = chaptersCtx.total;
+
   const [interactive, setInteractive] = useState<boolean>(false);
   const [isMapLoaded, setIsMapLoaded] = useState<boolean>(false);
   const [trackData, setTrackData] = useState<FeatureCollection<LineString> | null>(null);
-  const [metrics, setMetrics] = useState<Record<string, number>>({});
-  
-  const mapHook = useMap({
-    mapId: 'maptelling-map',
-  });
+  const [trackError, setTrackError] = useState<string | null>(null); // QW-02 Fehlerzustand
+  const [styleObject, setStyleObject] = useState<any | null>(null); // QW-05 Prefetched Style
+  const [terrainEnabled, setTerrainEnabled] = useState<boolean>(!!config.terrain?.enabled); // QW-08 Toggle Terrain
+  const t = useT();
+  const debugEnabled = typeof window !== 'undefined' && window.location.search.includes('debug');
+  const { fps } = useFpsSample({ enabled: debugEnabled }); // ST-02 FPS Hook
+
+  // Map Hook
+  const mapHook = useMap({ mapId: 'maptelling-map' });
+
+  // QW-04 start chapter memo
+  const startChapter = useMemo(() => chapters[0], [chapters]);
 
   // Map load flag
-  useEffect(() => {
-    if (mapHook.map) setIsMapLoaded(true);
-  }, [mapHook.map]);
+  useEffect(() => { if (mapHook.map) setIsMapLoaded(true); }, [mapHook.map]);
 
-  // Load track data from public assets (no Mapbox dependency)
+  // QW-05: Prefetch style JSON -> reduzieren Style Flash
   useEffect(() => {
-    const url = `${import.meta.env.BASE_URL}assets/track_day01-03.geojson`;
-    fetch(url)
-      .then((res) => (res.ok ? res.json() : null))
-      .then((json) => {
-        if (json && json.type === 'FeatureCollection') {
-          setTrackData(json as FeatureCollection<LineString>);
-        }
-      })
-      .catch(() => {
-        // optional: log or ignore
-      });
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(config.style);
+        if (!res.ok) return;
+        const json = await res.json();
+        if (!cancelled) setStyleObject(json);
+      } catch {/* ignore */}
+    })();
+    return () => { cancelled = true; };
   }, []);
 
-  // Performance instrumentation (capabilities sec56)
-  usePerformanceInstrumentation({
-    mapId: 'maptelling-map',
-    sampleFpsDuringMs: 2000,
-    onMetrics: (m) => setMetrics(m),
-  });
+  // Helper to get base url without relying on import.meta (avoids Jest parsing issues)
+  const getBaseUrl = () => {
+    if (typeof document !== 'undefined') {
+      const base = document.querySelector('base')?.getAttribute('href');
+      if (base) return base;
+    }
+    return '/';
+  };
+  // QW-02: Load track data with AbortController + Timeout
+  useEffect(() => {
+    // Skip network in test environment to avoid fetch ReferenceError
+    if (typeof process !== 'undefined' && process.env.JEST_WORKER_ID) return;
+    const url = `${getBaseUrl()}assets/track_day01-03.geojson`;
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000); // 8s Timeout
+    if (typeof fetch === 'function') {
+      fetch(url, { signal: controller.signal })
+        .then((res) => (res.ok ? res.json() : Promise.reject(new Error(res.statusText))))
+        .then((json) => {
+          if (json && json.type === 'FeatureCollection') {
+            setTrackData(json as FeatureCollection<LineString>);
+            setTrackError(null);
+          } else {
+            setTrackError('Track data: invalid format');
+          }
+        })
+        .catch((e) => { if (!controller.signal.aborted) setTrackError(e.message || 'Track load failed'); })
+        .finally(() => clearTimeout(timeout));
+    }
+    return () => { controller.abort(); clearTimeout(timeout); };
+  }, []);
+
+  // removed instrumentation hook (cleanup)
 
   // Optional underlying inset map sync (story mode only)
   useViewportSync({
@@ -65,30 +104,27 @@ const InnerApp: React.FC = () => {
   });
 
   // Chapter navigation hook (centralised)
-  const {
-    currentChapter,
-    isPlaying,
-    goToChapter: navigateToChapter,
-    next: handleNext,
-    previous: handlePrevious,
-    togglePlay: togglePlayPause,
-  } = useChapterNavigation({ mapId: 'maptelling-map', chapters: useChapters().chapters });
+  const { currentChapter, isPlaying, goToChapter: navigateToChapter, next: handleNext, previous: handlePrevious, togglePlay: togglePlayPause } = useChapterNavigation({ mapId: 'maptelling-map', chapters });
 
   // Scroll-driven Story integration moved below in JSX
 
   const toggleInteractive = useCallback(() => setInteractive(p => !p), []);
+  const toggleTerrain = useCallback(() => setTerrainEnabled(t => !t), []); // QW-08
 
+  useEffect(()=>{ log.info('MapTellingApp mount'); },[]);
   return (
-    <div className="map-telling-app">
+    <MapErrorBoundary>
+  <div className="map-telling-app" id="story-main" role="main" aria-label="Story">
+    <a href="#story-main" className="skip-link">{t('skip.toContent')}</a>
     {/* MapLibre Map with MapComponents */}
-    <MapLibreMap 
+  <MapLibreMap 
         mapId="maptelling-map"
         options={{
-          style: config.style,
-            center: useChapters().chapters[0].location.center,
-            zoom: useChapters().chapters[0].location.zoom,
-            bearing: useChapters().chapters[0].location.bearing || 0,
-            pitch: useChapters().chapters[0].location.pitch || 0,
+      style: styleObject || config.style, // QW-05 preloaded object falls vorhanden
+      center: startChapter.location.center,
+      zoom: startChapter.location.zoom,
+      bearing: startChapter.location.bearing || 0,
+      pitch: startChapter.location.pitch || 0,
       interactive: interactive,
           attributionControl: false,
         }}
@@ -96,75 +132,114 @@ const InnerApp: React.FC = () => {
       />
 
     {/* Centralised interaction toggle */}
-  <InteractionController mapId="maptelling-map" enabled={interactive} />
+  <Suspense fallback={null}>
+    <InteractionController mapId="maptelling-map" enabled={interactive} />
+  </Suspense>
 
   {/* Optional 3D Terrain */}
-  <TerrainManager mapId="maptelling-map" config={config.terrain} />
+  <Suspense fallback={null}>
+    <MlTerrain
+      mapId="maptelling-map"
+      enabled={terrainEnabled && !!config.terrain?.enabled}
+      exaggeration={config.terrain?.exaggeration}
+      url={config.terrain?.url as any}
+      tiles={config.terrain?.tiles as any}
+      tileSize={config.terrain?.tileSize as any}
+    />
+  </Suspense>
 
     {/* Mode Toggle (Story vs Free Navigation) */}
-  <ModeToggle isInteractive={interactive} onToggle={toggleInteractive} />
+  <Suspense fallback={null}>
+    <ModeToggle isInteractive={interactive} onToggle={toggleInteractive} />
+  </Suspense>
+  <button
+    style={{ position: 'absolute', top: 8, right: 8, zIndex: 5 }}
+    onClick={toggleTerrain}
+  >{terrainEnabled ? t('terrain.disable') : t('terrain.enable')}</button>
       
       {/* GeoJSON Track Layer with MapComponents */}
       {isMapLoaded && trackData && (
-        <CompositeGeoJsonLine mapId="maptelling-map" data={trackData} idBase="route" color="#ff6b6b" />
+        <Suspense fallback={null}>
+          {/* QW-03: stabile IDs über idBase="route" */}
+          <CompositeGeoJsonLine mapId="maptelling-map" data={trackData} idBase="route" color="#ff6b6b" />
+        </Suspense>
+      )}
+      {trackError && (
+        <div style={{ position:'absolute', top:40, right:8, background:'#ff6b6b', color:'#fff', padding:'4px 8px', borderRadius:4, zIndex:5 }}>
+          {trackError}
+        </div>
       )}
 
       {/* Inset Map (Overview) */}
-  {config.showInset && <InsetMap mainMapId="maptelling-map" />}
+  {config.showInset && (
+    <Suspense fallback={null}>
+      <InsetMap mainMapId="maptelling-map" />
+    </Suspense>
+  )}
       
       {/* Scroll-driven chapters */}
-      <StoryScroller
+  <Suspense fallback={null}>
+  <StoryScroller
         currentChapter={currentChapter}
         onEnterChapter={(idx) => {
           if (!interactive) navigateToChapter(idx);
         }}
       />
+  </Suspense>
 
       {/* Markers for chapters */}
-  <MarkerLayer mapId="maptelling-map" activeChapterId={useChapters().chapters[currentChapter].id} />
+  <Suspense fallback={null}>
+    <MarkerLayer mapId="maptelling-map" activeChapterId={chapters[currentChapter].id} />
+  </Suspense>
 
       {/* Story Overlay */}
-      <StoryOverlay 
-        chapter={useChapters().chapters[currentChapter]}
+  <Suspense fallback={null}>
+  <StoryOverlay 
+        chapter={chapters[currentChapter]}
         chapterIndex={currentChapter}
-        totalChapters={useChapters().total}
+        totalChapters={totalChapters}
       />
+  </Suspense>
 
       {/* Navigation Controls */}
-      <NavigationControls
-        currentChapter={currentChapter}
-        totalChapters={useChapters().total}
+  <Suspense fallback={null}>
+  <NavigationControls
+  currentChapter={currentChapter}
+  totalChapters={totalChapters}
         isPlaying={isPlaying}
         onPrevious={handlePrevious}
         onNext={handleNext}
         onPlayPause={togglePlayPause}
         onChapterSelect={navigateToChapter}
       />
+  </Suspense>
 
-      {/* Basic metrics readout (dev only) */}
-      {metrics.time_to_load_ms && (
-        <div style={{ position: 'fixed', bottom: 8, left: 8, background: 'rgba(0,0,0,0.55)', color: '#fff', padding: '4px 8px', borderRadius: 4, fontSize: 12 }}>
-          <div>Load: {Math.round(metrics.time_to_load_ms)}ms</div>
-          {metrics.avg_fps_window && <div>FPS≈ {Math.round(metrics.avg_fps_window)}</div>}
-        </div>
-      )}
+  {/* metrics overlay removed */}
 
       {/* Progress Bar */}
       <motion.div 
-        className="progress-bar"
-        initial={{ scaleX: 0 }}
-  animate={{ scaleX: (currentChapter + 1) / useChapters().total }}
+  className="progress-bar"
+  initial={{ scaleX: 0 }}
+  animate={{ scaleX: (currentChapter + 1) / totalChapters }}
         transition={{ duration: 0.5 }}
       />
-  {import.meta.env?.MODE !== 'production' && <DevMetricsOverlay mapId="maptelling-map" />}
-    </div>
+      {debugEnabled && (
+        <div style={{ position:'absolute', bottom:8, right:8, background:'rgba(0,0,0,0.55)', color:'#fff', padding:'4px 8px', fontSize:12, borderRadius:4 }}>
+          FPS: {fps}
+        </div>
+      )}
+  {/* DevMetricsOverlay removed */}
+  </div>
+  </MapErrorBoundary>
   );
 };
 
 const MapTellingApp: React.FC = () => (
-  <ChaptersProvider chapters={config.chapters}>
-    <InnerApp />
-  </ChaptersProvider>
+  <I18nProvider>
+    <ChaptersProvider chapters={config.chapters}>
+      <InnerApp />
+    </ChaptersProvider>
+  </I18nProvider>
 );
 
 export default MapTellingApp;

@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { Chapter } from '../config/mapConfig';
+import { Chapter } from '../types/story';
 import './StoryOverlay.css';
+import { safeHtmlLineBreaks } from '../utils/sanitize';
 
 interface StoryOverlayProps {
   chapter: Chapter;
@@ -22,6 +23,8 @@ const StoryOverlay: React.FC<StoryOverlayProps> = ({
       exit={{ opacity: 0, y: -50 }}
       transition={{ duration: 0.6 }}
       key={chapter.id}
+      role="region"
+      aria-labelledby={`story-title-${chapter.id}`}
     >
       <div className="story-content">
         <motion.div
@@ -38,6 +41,7 @@ const StoryOverlay: React.FC<StoryOverlayProps> = ({
           initial={{ opacity: 0, x: -30 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.4, duration: 0.5 }}
+          id={`story-title-${chapter.id}`}
         >
           {chapter.title}
         </motion.h2>
@@ -60,9 +64,9 @@ const StoryOverlay: React.FC<StoryOverlayProps> = ({
           initial={{ opacity: 0, x: -30 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.6, duration: 0.5 }}
-        >
-          {chapter.description}
-        </motion.p>
+          // Sanitized HTML (line breaks) – SEC-01
+          dangerouslySetInnerHTML={{ __html: useMemo(() => safeHtmlLineBreaks(chapter.description), [chapter.description]) }}
+        />
       </div>
     </motion.div>
   );

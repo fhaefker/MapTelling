@@ -1,35 +1,4 @@
-import type { FeatureCollection, LineString } from 'geojson';
-
-export interface ChapterLocation {
-  center: [number, number];
-  zoom: number;
-  pitch?: number;
-  bearing?: number;
-}
-
-export interface Chapter {
-  id: string;
-  title: string;
-  description: string;
-  alignment?: 'left' | 'center' | 'right' | 'full';
-  image?: string;
-  location: ChapterLocation;
-  marker?: { coordinates: [number, number] };
-}
-
-export interface MapConfig {
-  style: string;
-  chapters: Chapter[];
-  trackData?: FeatureCollection<LineString>;
-  showInset?: boolean;
-  terrain?: {
-    enabled?: boolean;
-    tiles?: string[];
-    url?: string;
-    tileSize?: 256 | 512;
-    exaggeration?: number;
-  };
-}
+import type { MapConfig } from '../types/story';
 
 // Note: Use a token-free, public demo style to avoid Mapbox. Replace with your own style if needed.
 export const config: MapConfig = {

@@ -26,4 +26,27 @@ describe('useChapterNavigation', () => {
     act(() => result.current.previous());
     expect(result.current.currentChapter).toBe(0);
   });
+
+  test('bounds are respected (previous at first, next at last)', () => {
+    const { result } = renderHook(() => useChapterNavigation({ mapId: 'test-map', chapters }), { wrapper });
+    // at first chapter
+    act(() => result.current.previous());
+    expect(result.current.currentChapter).toBe(0);
+    // move to last
+    act(() => result.current.next());
+    expect(result.current.currentChapter).toBe(1);
+    // attempt beyond last
+    act(() => result.current.next());
+    expect(result.current.currentChapter).toBe(1);
+  });
+
+  test('autoplay stops at end', () => {
+    jest.useFakeTimers();
+    const { result } = renderHook(() => useChapterNavigation({ mapId: 'test-map', chapters, autoplay: true, autoplayIntervalMs: 10 }), { wrapper });
+    expect(result.current.isPlaying).toBe(true);
+    act(() => { jest.advanceTimersByTime(25); }); // enough to iterate chapters
+    expect(result.current.currentChapter).toBe(1);
+    expect(result.current.isPlaying).toBe(false);
+    jest.useRealTimers();
+  });
 });
