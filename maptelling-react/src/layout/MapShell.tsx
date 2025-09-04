@@ -11,6 +11,7 @@ import InteractionController from '../components/InteractionController';
 import WmsOverlay from '../components/WmsOverlay';
 import ProgressBar from '../components/ProgressBar';
 import DebugOverlay from '../components/DebugOverlay';
+import ViewportMetricsOverlay from '../components/ViewportMetricsOverlay';
 import FreeNavHint from '../components/FreeNavHint';
 import MarkerLayer from '../components/MarkerLayer';
 import StoryMenu from '../components/StoryMenu';
@@ -112,7 +113,8 @@ const MapShell: React.FC<MapShellProps> = (props) => {
         <Suspense fallback={null}><MarkerLayer mapId="maptelling-map" activeChapterId={chapters[currentChapter].id} /></Suspense>
         <Suspense fallback={null}><NavigationControls currentChapter={currentChapter} totalChapters={total} isPlaying={isPlaying} onPrevious={previous} onNext={next} onPlayPause={togglePlay} onChapterSelect={goToChapter} /></Suspense>
         <ProgressBar current={currentChapter} total={total} />
-        {debugEnabled && <DebugOverlay fps={fps} />}
+  {debugEnabled && <DebugOverlay fps={fps} />}
+  {debugEnabled && <ViewportMetricsOverlay mapId="maptelling-map" />}
         {interactive && <FreeNavHint />}
   <Suspense fallback={null}><StoryMenu creatorOpen={creatorOpen} toggleCreator={()=>setCreatorOpen(o=>!o)} /></Suspense>
         {terrainEnabled && !config.terrain?.tiles && (
