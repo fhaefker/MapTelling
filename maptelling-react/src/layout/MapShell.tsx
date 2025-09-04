@@ -4,7 +4,7 @@ import { config } from '../config/mapConfig';
 import { useChapters } from '../context/ChaptersContext';
 import useWmsStyle from '../hooks/useWmsStyle';
 import useTrackData from '../hooks/useTrackData';
-import CompositeGeoJsonLine from '../components/CompositeGeoJsonLine';
+import GeoJsonLine from '../components/GeoJsonLine';
 import InsetMap from '../components/InsetMap';
 import MlTerrain from '../components/MlTerrain';
 import InteractionController from '../components/InteractionController';
@@ -103,7 +103,7 @@ const MapShell: React.FC<MapShellProps> = (props) => {
         /></Suspense>
         {trackData && (
           <Suspense fallback={null}>
-            <CompositeGeoJsonLine mapId="maptelling-map" data={trackData} idBase="route" color="#ff6b6b" />
+            <GeoJsonLine mapId="maptelling-map" id="route-main" data={trackData} paint={{ 'line-color':'#ff6b6b', 'line-width':3, 'line-opacity':0.85 }} />
           </Suspense>
         )}
         {trackError && <div style={{ position:'absolute', top:40, right:8, background:'#ff6b6b', color:'#fff', padding:'4px 8px', borderRadius:4, zIndex:5 }}>{trackError}</div>}

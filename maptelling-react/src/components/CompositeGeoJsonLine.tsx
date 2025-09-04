@@ -1,3 +1,7 @@
+/**
+ * DEPRECATION NOTICE (sec57): Please migrate to `GeoJsonLine` for simple single-line rendering.
+ * This composite variant (glow + main) is retained temporarily; will be removed after refactor phase.
+ */
 import { useEffect, useRef } from 'react';
 import { hashFeatureCollection } from '../utils/hashFeatureCollection';
 import { useMap } from '@mapcomponents/react-maplibre';
