@@ -15,6 +15,7 @@ const ModeToggle = lazy(() => import('./components/ModeToggle'));
 const MarkerLayer = lazy(() => import('./components/MarkerLayer'));
 const StoryScroller = lazy(() => import('./components/StoryScroller'));
 const StoryCreator = lazy(() => import('./components/StoryCreator'));
+const StoryEditor = lazy(() => import('./components/StoryEditor'));
 const InsetMap = lazy(() => import('./components/InsetMap'));
 const MlTerrain = lazy(() => import('./components/MlTerrain'));
 import 'maplibre-gl/dist/maplibre-gl.css';
@@ -39,6 +40,10 @@ const InnerApp: React.FC = () => {
   const [styleObject, setStyleObject] = useState<any | null>(null); // WMS raster style object only
   const [wmsLayerName, setWmsLayerName] = useState<string | null>(null);
   const [terrainEnabled, setTerrainEnabled] = useState<boolean>(false); // runtime controlled only
+  const [terrainExag, setTerrainExag] = useState<number>(config.terrain?.exaggeration || 1.4);
+  const [transitionSpeed, setTransitionSpeed] = useState<number>(0.9);
+  const [showPerf, setShowPerf] = useState<boolean>(false);
+  const [wmsCacheEnabled, setWmsCacheEnabled] = useState<boolean>(false);
   const t = useT();
   const debugEnabled = typeof window !== 'undefined' && window.location.search.includes('debug');
   const { fps } = useFpsSample({ enabled: debugEnabled }); // ST-02 FPS Hook
@@ -138,6 +143,7 @@ const InnerApp: React.FC = () => {
 
   const toggleInteractive = useCallback(() => setInteractive(p => !p), []);
   const toggleTerrain = useCallback(() => setTerrainEnabled(t => !t), []); // QW-08
+  const togglePerf = useCallback(() => setShowPerf(p=>!p), []);
   // Pitch fallback effect when no DEM source configured
   useEffect(() => {
     const base = mapHook.map?.map;
@@ -178,13 +184,24 @@ const InnerApp: React.FC = () => {
             zoom: chapter.location.zoom,
             bearing: chapter.location.bearing || 0,
             pitch: chapter.location.pitch || 0,
-            speed: 0.9,
+            speed: transitionSpeed,
             curve: 1.4
           });
         }
       } catch(_) {}
     }
-  }, [interactive, mapHook.map, currentChapter, chapters]);
+  }, [interactive, mapHook.map, currentChapter, chapters, transitionSpeed]);
+
+  // Keyboard shortcuts (F free nav, T terrain, P perf overlay)
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key.toLowerCase() === 'f') { toggleInteractive(); }
+      else if (e.key.toLowerCase() === 't') { toggleTerrain(); }
+      else if (e.key.toLowerCase() === 'p') { togglePerf(); }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [toggleInteractive, toggleTerrain, togglePerf]);
   return (
     <MapErrorBoundary>
   <div className="map-telling-app" id="story-main" role="main" aria-label="Story">
@@ -215,7 +232,7 @@ const InnerApp: React.FC = () => {
       <MlTerrain
         mapId="maptelling-map"
         enabled={terrainEnabled}
-        exaggeration={config.terrain?.exaggeration}
+        exaggeration={terrainExag}
         url={config.terrain?.url as any}
         tiles={config.terrain?.tiles as any}
         tileSize={config.terrain?.tileSize as any}
@@ -314,9 +331,30 @@ const InnerApp: React.FC = () => {
           Freie Navigation aktiv – Scroll wechselt Kapitel nicht
         </div>
       )}
+      {/* Settings Panel */}
+      <div style={{ position:'fixed', bottom:8, right:8, zIndex:35, background:'rgba(0,0,0,0.55)', padding:12, borderRadius:6, color:'#fff', width:260, fontSize:12 }}>
+        <div style={{ fontWeight:600, marginBottom:6 }}>Einstellungen</div>
+        <label style={{ display:'block', marginBottom:6 }}>Terrain Exaggeration: {terrainExag.toFixed(2)}
+          <input type="range" min={0.5} max={3} step={0.1} value={terrainExag} onChange={e=>setTerrainExag(parseFloat(e.target.value))} style={{ width:'100%' }} />
+        </label>
+        <label style={{ display:'block', marginBottom:6 }}>Transition Speed: {transitionSpeed.toFixed(2)}
+          <input type="range" min={0.2} max={2} step={0.1} value={transitionSpeed} onChange={e=>setTransitionSpeed(parseFloat(e.target.value))} style={{ width:'100%' }} />
+        </label>
+        <label style={{ display:'flex', alignItems:'center', gap:6, marginBottom:4 }}>
+          <input type="checkbox" checked={showPerf} onChange={togglePerf} /> Performance
+        </label>
+        <label style={{ display:'flex', alignItems:'center', gap:6, marginBottom:4 }}>
+          <input type="checkbox" checked={wmsCacheEnabled} onChange={()=>setWmsCacheEnabled(c=>!c)} /> WMS Cache
+        </label>
+        <div style={{ opacity:0.7, fontSize:11 }}>Hotkeys: F freie Navi, T Terrain, P Perf</div>
+      </div>
       {/* Story Creator Panel */}
       <Suspense fallback={null}>
         <StoryCreator />
+      </Suspense>
+      {/* Story Editor Panel (edit existing chapters) */}
+      <Suspense fallback={null}>
+        <StoryEditor />
       </Suspense>
       {/* Terrain pitch fallback effect note */}
       {terrainEnabled && !config.terrain?.tiles && (
@@ -326,7 +364,7 @@ const InnerApp: React.FC = () => {
       )}
       {/* WMS Attribution & Status Overlay (no caching) */}
       <Suspense fallback={null}>
-        <WmsOverlay mapId="maptelling-map" layer={wmsLayerName} attribution={(config as any).wms?.attribution} baseUrl={(config as any).wms?.baseUrl} />
+  <WmsOverlay mapId="maptelling-map" layer={wmsLayerName} attribution={(config as any).wms?.attribution} baseUrl={(config as any).wms?.baseUrl} cacheEnabled={wmsCacheEnabled} />
       </Suspense>
   {/* DevMetricsOverlay removed */}
   </div>

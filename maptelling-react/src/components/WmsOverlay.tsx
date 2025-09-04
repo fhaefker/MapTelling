@@ -6,11 +6,12 @@ interface WmsOverlayProps {
   layer: string | null;
   attribution: string | undefined;
   baseUrl: string;
+  cacheEnabled?: boolean;
 }
 
 // Lightweight overlay showing WMS layer + attribution + rudimentary tile error count.
 // No caching (explicitly avoided per user request).
-const WmsOverlay: React.FC<WmsOverlayProps> = ({ mapId, layer, attribution, baseUrl }) => {
+const WmsOverlay: React.FC<WmsOverlayProps> = ({ mapId, layer, attribution, baseUrl, cacheEnabled }) => {
   const { map } = useMap({ mapId });
   const [errors, setErrors] = useState<number>(0);
   const [lastError, setLastError] = useState<string | null>(null);
@@ -32,7 +33,7 @@ const WmsOverlay: React.FC<WmsOverlayProps> = ({ mapId, layer, attribution, base
   return (
     <div style={{ position:'fixed', bottom:4, right:4, zIndex:30, fontSize:11, fontFamily:'system-ui, sans-serif', color:'#fff' }}>
       <div style={{ background:'rgba(0,0,0,0.55)', padding:'4px 8px', borderRadius:4, lineHeight:1.3, maxWidth:260 }}>
-        <div><strong>WMS</strong> {layer || '…'}</div>
+  <div><strong>WMS</strong> {layer || '…'} {cacheEnabled && <span style={{ fontWeight:400, fontSize:10 }}>(cache)</span>}</div>
         {attribution && <div style={{ opacity:0.85 }}>{attribution}</div>}
         <div style={{ opacity:0.7 }}>Host: {new URL(baseUrl).host}</div>
         {errors > 0 && (
