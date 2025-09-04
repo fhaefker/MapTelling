@@ -17,6 +17,7 @@ import CompositeGeoJsonLine from './components/CompositeGeoJsonLine';
 import { useChapterNavigation } from './hooks/useChapterNavigation';
 import { usePerformanceInstrumentation } from './hooks/usePerformanceInstrumentation';
 import { useViewportSync } from './hooks/useViewportSync';
+import DevMetricsOverlay from './components/DevMetricsOverlay';
 
 const MapTellingApp: React.FC = () => {
   const [interactive, setInteractive] = useState<boolean>(false);
@@ -154,6 +155,7 @@ const MapTellingApp: React.FC = () => {
         animate={{ scaleX: (currentChapter + 1) / config.chapters.length }}
         transition={{ duration: 0.5 }}
       />
+  {import.meta.env?.MODE !== 'production' && <DevMetricsOverlay mapId="maptelling-map" />}
     </div>
   );
 };
