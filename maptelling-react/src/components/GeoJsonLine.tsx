@@ -1,9 +1,9 @@
 import React, { useEffect } from 'react';
 import { useMap } from '@mapcomponents/react-maplibre';
 
-interface GeoJsonLineProps {
+export interface GeoJsonLineProps {
   mapId: string;
-  id: string;
+  id: string; // unique id for both source & layer
   data: GeoJSON.FeatureCollection | GeoJSON.Feature | any;
   paint?: any;
   before?: string;
