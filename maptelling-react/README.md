@@ -3,7 +3,7 @@
 MapTelling ist eine Storytelling-Demonstration auf Basis von `@mapcomponents/react-maplibre` mit Fokus auf:
 - Scroll-/Kapitel-basierte Kamerafahrten (Chapter Navigation Hook)
 - Deklarative Layer (Route, Marker) und optionalem Terrain
-- Performance-orientierter Composite Line Layer (Glow + Main)
+- Deklarative Line Komponenten (`GeoJsonLine`, `GeoJsonLineGlow`) ersetzen das frühere Composite Muster
 
 Siehe `MAPCOMPONENTS_CAPABILITIES.md` für vollständige Architektur-Referenz.
 
@@ -15,7 +15,7 @@ ChaptersProvider
 		  ├─ MapLibreMap
 		  ├─ InteractionController
 		  ├─ MlTerrain (optional DEM)
-		  ├─ CompositeGeoJsonLine (Route)
+		  ├─ GeoJsonLineGlow (Route mit optionalem Glow, ersetzt CompositeGeoJsonLine)
 		  ├─ MarkerLayer
 		  ├─ InsetMap (optional)
 		  ├─ StoryScroller (weiße Karten, Inline Edit + Create)
@@ -49,6 +49,11 @@ Bundle-Größe Analyse:
 ```
 npm run analyze
 ```
+
+# Deprecations
+
+Siehe `DEPRECATIONS.md` für geplante Entfernung von `CompositeGeoJsonLine` und `TrackCompositeLayer`.
+Migration: nutze `GeoJsonLine` oder `GeoJsonLineGlow`.
 
 # Getting Started (CRA Basis)
 
