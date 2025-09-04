@@ -1,1 +1,2 @@
-export { default } from '../TerrainManager';
+// Deprecated re-export stub
+export { };

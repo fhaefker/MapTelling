@@ -1,1 +1,2 @@
-export { default } from '../ModeToggle';
+// Deprecated ui ModeToggle re-export stub
+export { };

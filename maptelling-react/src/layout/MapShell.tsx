@@ -1,4 +1,4 @@
-import React, { Suspense } from 'react';
+import React, { Suspense, useState, useEffect } from 'react';
 import { MapLibreMap, useMap } from '@mapcomponents/react-maplibre';
 import { config } from '../config/mapConfig';
 import { useChapters } from '../context/ChaptersContext';
@@ -9,7 +9,6 @@ import InsetMap from '../components/InsetMap';
 import MlTerrain from '../components/MlTerrain';
 import InteractionController from '../components/InteractionController';
 import WmsOverlay from '../components/WmsOverlay';
-import SettingsPanel from '../components/SettingsPanel';
 import ProgressBar from '../components/ProgressBar';
 import DebugOverlay from '../components/DebugOverlay';
 import FreeNavHint from '../components/FreeNavHint';
@@ -19,7 +18,7 @@ import { useChapterNavigation } from '../hooks/useChapterNavigation';
 import { useViewportSync } from '../hooks/useViewportSync';
 import { useFpsSample } from '../hooks/useFpsSample';
 import useHillshadeBackground from '../hooks/useHillshadeBackground';
-import ModeToggle from '../components/ModeToggle';
+import UnifiedControls from '../components/UnifiedControls';
 import NavigationControls from '../components/NavigationControls';
 import StoryScroller from '../components/StoryScroller';
 import { useT } from '../i18n/I18nProvider';
@@ -47,7 +46,8 @@ const MapShell: React.FC<MapShellProps> = (props) => {
   const startChapter = chapters[0];
   const { styleObject, wmsLayerName } = useWmsStyle();
   const { trackData, trackError } = useTrackData();
-  const { currentChapter, isPlaying, goToChapter, next, previous, togglePlay } = useChapterNavigation({ mapId: 'maptelling-map', chapters });
+  const [creatorOpen, setCreatorOpen] = useState(false);
+  const { currentChapter, isPlaying, goToChapter, next, previous, togglePlay } = useChapterNavigation({ mapId: 'maptelling-map', chapters, offsetPxLeft: !interactive ? 180 : 0 });
   useViewportSync({ sourceMapId: 'maptelling-map', targetMapId: 'inset-map', shouldSync: () => !interactive });
   const debugEnabled = typeof window !== 'undefined' && window.location.search.includes('debug');
   const { fps } = useFpsSample({ enabled: debugEnabled });
@@ -55,6 +55,21 @@ const MapShell: React.FC<MapShellProps> = (props) => {
   // Access primary map instance for hillshade hook
   const mapHook = useMap({ mapId: 'maptelling-map' });
   useHillshadeBackground({ map: mapHook.map, enabled: terrainEnabled, exaggeration: terrainExag });
+  const [leftPad, setLeftPad] = useState(420);
+  useEffect(()=>{
+    const calc = () => {
+      const w = window.innerWidth;
+      let panel = 400;
+      if (w < 480) panel = Math.max(260, w - 32);
+      else if (w < 768) panel = 320;
+      else if (w < 1024) panel = 360;
+      else panel = 400;
+      setLeftPad(panel + 20); // panel width + margin
+    };
+    calc();
+    window.addEventListener('resize', calc);
+    return () => window.removeEventListener('resize', calc);
+  }, []);
   return (
     <MapErrorBoundary>
       <div className="map-telling-app" id="story-main" role="main" aria-label="Story">
@@ -70,13 +85,22 @@ const MapShell: React.FC<MapShellProps> = (props) => {
             interactive,
             attributionControl: false,
           }}
-          style={{ width: '100%', height: '100vh' }}
+          style={{ width: '100%', height: '100vh', paddingLeft: !interactive ? leftPad : 0, transition:'padding-left 300ms ease' }}
         />
         <Suspense fallback={null}><InteractionController mapId="maptelling-map" enabled={interactive} /></Suspense>
         <Suspense fallback={null}>{config.terrain?.tiles && (
           <MlTerrain mapId="maptelling-map" enabled={terrainEnabled} exaggeration={terrainExag} url={config.terrain?.url as any} tiles={config.terrain?.tiles as any} tileSize={config.terrain?.tileSize as any} encoding={'terrarium' as any} />
         )}</Suspense>
-        <Suspense fallback={null}><ModeToggle isInteractive={interactive} onToggle={onToggleInteractive} /></Suspense>
+        <Suspense fallback={null}><UnifiedControls
+          interactive={interactive}
+          onToggleInteractive={onToggleInteractive}
+          terrainEnabled={terrainEnabled}
+          toggleTerrain={toggleTerrain}
+          terrainExag={terrainExag}
+          setTerrainExag={setTerrainExag}
+          transitionSpeed={transitionSpeed}
+          setTransitionSpeed={setTransitionSpeed}
+        /></Suspense>
         {trackData && (
           <Suspense fallback={null}>
             <CompositeGeoJsonLine mapId="maptelling-map" data={trackData} idBase="route" color="#ff6b6b" />
@@ -84,32 +108,13 @@ const MapShell: React.FC<MapShellProps> = (props) => {
         )}
         {trackError && <div style={{ position:'absolute', top:40, right:8, background:'#ff6b6b', color:'#fff', padding:'4px 8px', borderRadius:4, zIndex:5 }}>{trackError}</div>}
         {config.showInset && <Suspense fallback={null}><InsetMap mainMapId="maptelling-map" /></Suspense>}
-        <Suspense fallback={null}><StoryScroller currentChapter={currentChapter} disabled={interactive} passThrough={interactive} onEnterChapter={idx => { if (!interactive) goToChapter(idx); }} /></Suspense>
+  <Suspense fallback={null}><StoryScroller creatorOpen={creatorOpen} onToggleCreator={()=>setCreatorOpen(o=>!o)} currentChapter={currentChapter} disabled={interactive} passThrough={interactive} onEnterChapter={idx => { if (!interactive) goToChapter(idx); }} /></Suspense>
         <Suspense fallback={null}><MarkerLayer mapId="maptelling-map" activeChapterId={chapters[currentChapter].id} /></Suspense>
         <Suspense fallback={null}><NavigationControls currentChapter={currentChapter} totalChapters={total} isPlaying={isPlaying} onPrevious={previous} onNext={next} onPlayPause={togglePlay} onChapterSelect={goToChapter} /></Suspense>
         <ProgressBar current={currentChapter} total={total} />
         {debugEnabled && <DebugOverlay fps={fps} />}
         {interactive && <FreeNavHint />}
-        <SettingsPanel
-          terrainEnabled={terrainEnabled}
-          onToggleTerrain={toggleTerrain}
-          terrainExag={terrainExag}
-          setTerrainExag={setTerrainExag}
-          transitionSpeed={transitionSpeed}
-          setTransitionSpeed={setTransitionSpeed}
-          showPerf={showPerf}
-          togglePerf={togglePerf}
-          wmsCacheEnabled={wmsCacheEnabled}
-          setWmsCacheEnabled={(fn:any) => {
-            // Accept functional update signature expected by panel
-            if (typeof fn === 'function') {
-              setWmsCacheEnabled(fn(wmsCacheEnabled));
-            } else {
-              setWmsCacheEnabled(fn);
-            }
-          }}
-        />
-        <Suspense fallback={null}><StoryMenu /></Suspense>
+  <Suspense fallback={null}><StoryMenu creatorOpen={creatorOpen} toggleCreator={()=>setCreatorOpen(o=>!o)} /></Suspense>
         {terrainEnabled && !config.terrain?.tiles && (
           <div style={{ position:'fixed', top:40, left:8, background:'rgba(0,0,0,0.55)', color:'#fff', padding:'4px 8px', fontSize:11, borderRadius:4 }}>Terrain (Pitch) Fallback aktiv – keine DEM Tiles konfiguriert</div>
         )}

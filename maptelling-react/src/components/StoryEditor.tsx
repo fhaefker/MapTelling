@@ -1,2 +1,2 @@
-// StoryEditor removed. Provide stub component.
-export default function StoryEditor() { return null; }
+// (Deprecated) StoryEditor stub retained to avoid broken imports during transitional cleanup.
+export default function StoryEditor(){ return null; }

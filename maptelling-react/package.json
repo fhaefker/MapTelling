@@ -36,6 +36,8 @@
     "preview": "vite preview",
     "extract:api": "ts-node -P tsconfig.scripts.json ./scripts/extract-mapcomponents-api.ts",
   "test": "jest",
+  "lint:unused": "ts-node -P tsconfig.scripts.json ./scripts/find-unused.ts",
+  "analyze": "vite build && node ./scripts/report-bundle-size.cjs",
   "build:size": "node ./scripts/report-bundle-size.cjs"
   }
 }

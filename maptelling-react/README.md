@@ -7,20 +7,22 @@ MapTelling ist eine Storytelling-Demonstration auf Basis von `@mapcomponents/rea
 
 Siehe `MAPCOMPONENTS_CAPABILITIES.md` für vollständige Architektur-Referenz.
 
-## Architektur Überblick
+## Aktuelle Architektur (vereinfachte Version)
 ```
 ChaptersProvider
-	└─ MapTellingApp
-			 ├─ MapLibreMap (mapId="maptelling-map")
-			 ├─ InteractionController
-			 ├─ TerrainManager (Toggle)
-			 ├─ CompositeGeoJsonLine (Route)
-			 ├─ MarkerLayer (Kapitel Marker)
-			 ├─ InsetMap (optional)
-			 ├─ StoryScroller (Scroll -> Kapitel Index)
-			 ├─ StoryOverlay (Titel/Bild/Text, sanitisiert)
-			 ├─ NavigationControls (Play/Pause, Prev/Next)
-			 └─ Progress Bar
+  └─ MapTellingApp
+	  └─ MapShell
+		  ├─ MapLibreMap
+		  ├─ InteractionController
+		  ├─ MlTerrain (optional DEM)
+		  ├─ CompositeGeoJsonLine (Route)
+		  ├─ MarkerLayer
+		  ├─ InsetMap (optional)
+		  ├─ StoryScroller (weiße Karten, Inline Edit + Create)
+		  ├─ UnifiedControls (Freie Navigation / DEM)
+		  ├─ NavigationControls
+		  ├─ ProgressBar
+		  └─ DebugOverlay (optional)
 ```
 
 ## Performance Quick Wins (implementiert)
@@ -33,7 +35,20 @@ ChaptersProvider
 | Terrain Toggle | Terrain optional (Performance Ersparnis) |
 | Sanitizer | Verhindert XSS im Overlay |
 
-Weitere geplante Optimierungen siehe `MAPTELLING_OPTIMIZATION_BACKLOG.md`.
+Aufräumarbeiten:
+- Entfernte Legacy Overlays & Editor-Komponenten
+- Konsolidierte Steuerung (UnifiedControls)
+- Responsives Story-Panel + Karten-Offset
+- Automatische Marker-Übernahme beim Kapitel-Erstellen
+
+Unbenutzte-Dateien-Check:
+```
+npm run lint:unused
+```
+Bundle-Größe Analyse:
+```
+npm run analyze
+```
 
 # Getting Started (CRA Basis)
 

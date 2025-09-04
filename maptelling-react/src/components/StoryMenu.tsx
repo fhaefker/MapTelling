@@ -2,8 +2,13 @@ import React, { useState, useRef } from 'react';
 import { resetStoredChapters } from '../context/ChaptersContext';
 import { useChapters } from '../context/ChaptersContext';
 
+interface StoryMenuProps {
+  creatorOpen: boolean;
+  toggleCreator: () => void;
+}
+
 // Unified story tools menu (bottom-left)
-const StoryMenu: React.FC = () => {
+const StoryMenu: React.FC<StoryMenuProps> = ({ creatorOpen, toggleCreator }) => {
   const [open, setOpen] = useState<boolean>(false);
   // Creation / editing panels removed to avoid overlapping white forms
   const [importInfo, setImportInfo] = useState<string>('');
@@ -50,6 +55,11 @@ const StoryMenu: React.FC = () => {
         >{open ? 'Menü schließen' : 'Story Menü'}</button>
         {open && (
           <>
+            <span style={{ alignSelf:'center', fontWeight:600, color:'#222', background:'#fff', padding:'6px 10px', borderRadius:4 }}>Story</span>
+            <button
+              onClick={toggleCreator}
+              style={{ padding:'6px 10px', borderRadius:4, background: creatorOpen ? '#b5179e' : '#3FB1CE', color:'#fff', border:'none', cursor:'pointer' }}
+            >{creatorOpen ? 'Abbrechen' : 'Neues Kapitel'}</button>
             <button
               onClick={()=>{ resetStoredChapters(); localStorage.removeItem('maptelling.chapters.overrides'); window.location.reload(); }}
               style={{ padding:'6px 10px', borderRadius:4, background:'#555', color:'#fff', border:'none', cursor:'pointer' }}

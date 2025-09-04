@@ -1,1 +1,2 @@
-export { default } from '../TrackCompositeLayer';
+// Deprecated re-export stub
+export { };

@@ -21,6 +21,7 @@ export interface UseChapterNavigationOptions {
   autoplayIntervalMs?: number;
   flyOptions?: Partial<maplibregl.FlyToOptions>;
   initialChapter?: number;
+  offsetPxLeft?: number; // optional horizontal pixel offset applied to target center (positive shifts map center rightwards visually)
 }
 
 export interface ChapterNavigationApi {
@@ -35,7 +36,7 @@ export interface ChapterNavigationApi {
 
 // Hook centralising chapter based camera navigation (see capabilities sec40 lifecycle / sec51 hook patterns)
 export const useChapterNavigation = (opts: UseChapterNavigationOptions): ChapterNavigationApi => {
-  const { mapId, chapters, autoplay = false, autoplayIntervalMs = 4000, flyOptions, initialChapter = 0 } = opts;
+  const { mapId, chapters, autoplay = false, autoplayIntervalMs = 4000, flyOptions, initialChapter = 0, offsetPxLeft = 0 } = opts;
   const { map } = useMap({ mapId });
   const [currentChapter, setCurrentChapter] = useState(initialChapter);
   const [isPlaying, setIsPlaying] = useState<boolean>(autoplay);
@@ -53,11 +54,19 @@ export const useChapterNavigation = (opts: UseChapterNavigationOptions): Chapter
     const chapter = chapters[index];
     if (!chapter) return;
     const { center, zoom, bearing = 0, pitch = 0 } = chapter.location;
+    let targetCenter = center;
+    if (offsetPxLeft !== 0) {
+      try {
+        const c = map.map.project(center as any);
+        c.x += offsetPxLeft; // move projected point right, so content appears more rightwards relative to left UI
+        targetCenter = map.map.unproject(c) as any;
+      } catch {/* ignore */}
+    }
     if (immediate) {
-      map.map.jumpTo({ center, zoom, bearing, pitch });
+      map.map.jumpTo({ center: targetCenter, zoom, bearing, pitch });
     } else {
       map.map.flyTo({
-        center,
+        center: targetCenter,
         zoom,
         bearing,
         pitch,
@@ -67,7 +76,7 @@ export const useChapterNavigation = (opts: UseChapterNavigationOptions): Chapter
         ...flyOptions,
       });
     }
-  }, [map?.map, chapters, flyOptions]);
+  }, [map?.map, chapters, flyOptions, offsetPxLeft]);
 
   const goToChapter = useCallback((index: number, immediate?: boolean) => {
     if (index < 0 || index >= chapters.length) return;
