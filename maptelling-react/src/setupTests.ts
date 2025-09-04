@@ -46,12 +46,14 @@ jest.mock('@mapcomponents/react-maplibre', () => {
 			protocolRegistry[opts.scheme] = opts.handler;
 			(global as any).__TEST_PROTOCOLS__ = protocolRegistry;
 		};
-		return {
-			MapComponentsProvider: ({ children }: any) => React.createElement(ctx.Provider, { value: { map: mockMap } }, children),
-			MapLibreMap: () => null,
-			useMap: () => ({ map: mockMap }),
-			useAddProtocol,
-		};
+			const MlGeoJsonLayer = (props: any) => React.createElement('div', { 'data-testid': 'geojson-layer', ...props });
+			return {
+				MapComponentsProvider: ({ children }: any) => React.createElement(ctx.Provider, { value: { map: mockMap } }, children),
+				MapLibreMap: () => null,
+				MlGeoJsonLayer,
+				useMap: () => ({ map: mockMap }),
+				useAddProtocol,
+			};
 });
 
 // Polyfills for maplibre in jsdom test environment
