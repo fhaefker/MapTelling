@@ -21,6 +21,7 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import './MapTellingApp.css';
 const InteractionController = lazy(() => import('./components/InteractionController'));
 const CompositeGeoJsonLine = lazy(() => import('./components/CompositeGeoJsonLine'));
+const WmsOverlay = lazy(() => import('./components/WmsOverlay'));
 import { useChapterNavigation } from './hooks/useChapterNavigation';
 import { useViewportSync } from './hooks/useViewportSync';
 import { useFpsSample } from './hooks/useFpsSample';
@@ -36,6 +37,7 @@ const InnerApp: React.FC = () => {
   const [trackData, setTrackData] = useState<FeatureCollection<LineString> | null>(null);
   const [trackError, setTrackError] = useState<string | null>(null); // QW-02 Fehlerzustand
   const [styleObject, setStyleObject] = useState<any | null>(null); // WMS raster style object only
+  const [wmsLayerName, setWmsLayerName] = useState<string | null>(null);
   const [terrainEnabled, setTerrainEnabled] = useState<boolean>(!!config.terrain?.enabled); // QW-08 Toggle Terrain
   const t = useT();
   const debugEnabled = typeof window !== 'undefined' && window.location.search.includes('debug');
@@ -64,7 +66,7 @@ const InnerApp: React.FC = () => {
           if (caps && caps.layers.length) layer = chooseOsmLayer(caps, preferred);
         }
       } catch { /* ignore */ }
-      if (cancelled) return;
+  if (cancelled) return;
       const format = wms.format || 'image/png';
       const tileUrl = `${wms.baseUrl}service=WMS&request=GetMap&version=${wms.version}`+
         `&layers=${encodeURIComponent(layer)}&styles=&format=${encodeURIComponent(format)}`+
@@ -83,6 +85,7 @@ const InnerApp: React.FC = () => {
         layers: [ { id: 'wms-base', type: 'raster', source: 'wms' } ]
       } as any;
       setStyleObject(rasterStyle);
+  setWmsLayerName(layer);
     })();
     return () => { cancelled = true; };
   }, []);
@@ -257,6 +260,10 @@ const InnerApp: React.FC = () => {
       {/* Story Creator Panel */}
       <Suspense fallback={null}>
         <StoryCreator />
+      </Suspense>
+      {/* WMS Attribution & Status Overlay (no caching) */}
+      <Suspense fallback={null}>
+        <WmsOverlay mapId="maptelling-map" layer={wmsLayerName} attribution={(config as any).wms?.attribution} baseUrl={(config as any).wms?.baseUrl} />
       </Suspense>
   {/* DevMetricsOverlay removed */}
   </div>
