@@ -34,8 +34,7 @@ const InnerApp: React.FC = () => {
   const [isMapLoaded, setIsMapLoaded] = useState<boolean>(false);
   const [trackData, setTrackData] = useState<FeatureCollection<LineString> | null>(null);
   const [trackError, setTrackError] = useState<string | null>(null); // QW-02 Fehlerzustand
-  const [styleObject, setStyleObject] = useState<any | null>(null); // QW-05 Prefetched Style
-  const [styleError, setStyleError] = useState<string | null>(null);
+  const [styleObject, setStyleObject] = useState<any | null>(null); // WMS raster style object only
   const [terrainEnabled, setTerrainEnabled] = useState<boolean>(!!config.terrain?.enabled); // QW-08 Toggle Terrain
   const t = useT();
   const debugEnabled = typeof window !== 'undefined' && window.location.search.includes('debug');
@@ -50,83 +49,27 @@ const InnerApp: React.FC = () => {
   // Map load flag
   useEffect(() => { if (mapHook.map) setIsMapLoaded(true); }, [mapHook.map]);
 
-  // WMS Primary: build raster style if configured (user request) unless vector override specified (?vector=1)
+  // Build WMS-only raster style once (exclusive usage) 
   useEffect(() => {
-    let cancelled = false;
-    const search = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : undefined;
-    const forceVector = search?.get('vector') === '1';
-    if (!forceVector && (config as any).wmsPrimary) {
-      const wms = (config as any).wmsPrimary as {
-        baseUrl: string; version: string; layerCandidates: string[]; format?: string; attribution?: string;
-      };
-      const format = wms.format || 'image/png';
-      const layer = wms.layerCandidates[0]; // simple first match (could be improved by capabilities parse)
-      const tileUrl = `${wms.baseUrl}service=WMS&request=GetMap&version=${wms.version}`+
-        `&layers=${encodeURIComponent(layer)}&styles=&format=${encodeURIComponent(format)}`+
-        `&transparent=false&crs=EPSG:3857&width=256&height=256&bbox={bbox-epsg-3857}&TILED=TRUE`;
-      const rasterStyle = {
-        version: 8,
-        name: 'Primary WMS Base',
-        sources: {
-          wms: {
-            type: 'raster',
-            tiles: [tileUrl],
-            tileSize: 256,
-            attribution: wms.attribution || 'WMS'
-          }
-        },
-        layers: [
-          { id: 'wms-base', type: 'raster', source: 'wms' }
-        ]
-      } as any;
-      setStyleObject(rasterStyle);
-      setStyleError(null);
-    } else {
-      // Vector path (fallback or forced)
-      let cancelledVector = false;
-      const candidates: string[] = [];
-      try {
-        if (typeof window !== 'undefined') {
-          const p = new URLSearchParams(window.location.search).get('style');
-          if (p) candidates.push(p);
+    const wms = (config as any).wms as { baseUrl: string; version: string; layers: string; format?: string; attribution?: string };
+    const format = wms.format || 'image/png';
+    const tileUrl = `${wms.baseUrl}service=WMS&request=GetMap&version=${wms.version}`+
+      `&layers=${encodeURIComponent(wms.layers)}&styles=&format=${encodeURIComponent(format)}`+
+      `&transparent=false&crs=EPSG:3857&width=256&height=256&bbox={bbox-epsg-3857}&TILED=TRUE`;
+    const rasterStyle = {
+      version: 8,
+      name: 'WhereGroup OSM Demo WMS',
+      sources: {
+        wms: {
+          type: 'raster',
+          tiles: [tileUrl],
+          tileSize: 256,
+          attribution: wms.attribution || '© OSM / WhereGroup'
         }
-      } catch {/* ignore */}
-      if (Array.isArray((config as any).vectorStyleCandidates)) {
-        candidates.push(...(config as any).vectorStyleCandidates);
-      } else {
-        candidates.push(config.style);
-        candidates.push('https://demotiles.maplibre.org/style.json');
-      }
-      (async () => {
-        for (const url of candidates) {
-          try {
-            setStyleError(null);
-            const res = await fetch(url, { mode: 'cors' });
-            if (!res.ok) { continue; }
-            const txt = await res.text();
-            try {
-              const json = JSON.parse(txt);
-              if (!cancelled && !cancelledVector) {
-                setStyleObject(json);
-                if (url !== config.style) {
-                  setStyleError(`Primary style failed. Using fallback: ${url}`);
-                }
-                break;
-              }
-            } catch (e:any) {
-              if (!cancelledVector) {
-                setStyleError(`Style parse failed for ${url}: ${(e && e.message) || 'invalid JSON'}`);
-              }
-              continue;
-            }
-          } catch (e:any) {
-            if (!cancelledVector) setStyleError(`Style request error for ${url}: ${(e && e.message) || 'network'}`);
-          }
-        }
-      })();
-      return () => { cancelledVector = true; };
-    }
-    return () => { cancelled = true; };
+      },
+      layers: [ { id: 'wms-base', type: 'raster', source: 'wms' } ]
+    } as any;
+    setStyleObject(rasterStyle);
   }, []);
 
   // Helper to get base url without relying on import.meta (avoids Jest parsing issues)
@@ -187,7 +130,7 @@ const InnerApp: React.FC = () => {
   <MapLibreMap 
         mapId="maptelling-map"
         options={{
-  style: styleObject || config.style, // either generated WMS raster style or vector JSON
+  style: styleObject || config.style, // generated WMS raster style (vector removed)
       center: startChapter.location.center,
       zoom: startChapter.location.zoom,
       bearing: startChapter.location.bearing || 0,
@@ -236,11 +179,7 @@ const InnerApp: React.FC = () => {
           {trackError}
         </div>
       )}
-      {styleError && (
-        <div style={{ position:'absolute', top:70, right:8, maxWidth:260, background:'#ffb347', color:'#222', padding:'4px 8px', borderRadius:4, zIndex:5, fontSize:12 }}>
-          {styleError}
-        </div>
-      )}
+  {/* No styleError state anymore (vector logic removed) */}
 
       {/* Inset Map (Overview) */}
   {config.showInset && (

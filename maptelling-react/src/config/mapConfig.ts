@@ -1,46 +1,27 @@
 import type { MapConfig } from '../types/story';
 
-// Extended base map configuration supporting multiple vector style candidates
-// and a WMS fallback (if all vector styles fail). The WMS endpoint here is
-// a placeholder; replace with a verified WhereGroup OSM WMS once available.
-export interface ExtendedMapConfig extends MapConfig {
-  vectorStyleCandidates?: string[]; // Ordered preference list
-  wmsFallback?: {
-    baseUrl: string; // WMS service endpoint without parameters
-    layers: string;  // Comma separated layer list
-    format?: string; // Default image/png
-    version?: '1.1.1' | '1.3.0';
+// Minimal extended map config focusing ONLY on the WhereGroup OSM demo WMS.
+// All vector style / fallback logic has been removed per user request.
+export interface WmsOnlyMapConfig extends MapConfig {
+  wms: {
+    baseUrl: string; // ends with ? or & for param appending
+    version: '1.1.1' | '1.3.0';
+    layers: string; // Chosen confirmed layer (first valid from earlier candidates)
+    format?: string;
     attribution?: string;
   };
-  osmDemo?: {
-    baseUrl: string;
-    version?: '1.1.1' | '1.3.0';
-  }
 }
 
-// Note: Use a token-free, public demo style to avoid Mapbox. Replace with your own style if needed.
-export const config: ExtendedMapConfig = {
-  // WhereGroup tileserver demo style (corrected URL)
-  style: 'https://wms.wheregroup.com/tileserver/styles/bright/style.json',
-  // Additional candidate style URLs (first that loads wins). Include MapLibre demo as safe final vector fallback.
-  vectorStyleCandidates: [
-    'https://wms.wheregroup.com/tileserver/styles/bright/style.json',
-    // Potential alternative style names (guessed common OpenMapTiles presets) - kept for future verification
-    'https://wms.wheregroup.com/tileserver/styles/basic/style.json',
-    'https://wms.wheregroup.com/tileserver/styles/openmaptiles/style.json',
-    // Public demo fallback
-    'https://demotiles.maplibre.org/style.json'
-  ],
-  // WMS fallback (replace baseUrl & layers with a confirmed WhereGroup endpoint when available)
-  // WMS fallback entfernt bis eine eigene / WhereGroup OSM WMS Quelle verifiziert ist.
-  wmsFallback: undefined,
-  // WhereGroup OSM demo root remembered by user; capabilities at /ows?service=WMS&request=GetCapabilities
-  // We'll reference it elsewhere when implementing dynamic WMS layer injection.
-  // Just storing base for future use.
-  // Not yet wired to runtime style fallback logic.
-  osmDemo: {
+// We still have to satisfy MapConfig.style (string) although it is unused now; provide a sentinel.
+export const config: WmsOnlyMapConfig = {
+  style: 'wms-only', // sentinel (never used directly)
+  wms: {
     baseUrl: 'https://osm-demo.wheregroup.com/ows?',
-    version: '1.3.0'
+    version: '1.3.0',
+    // Selected primary candidate. Adjust if capabilities later show a different canonical layer name.
+    layers: 'osm_auto:all',
+    format: 'image/png',
+    attribution: '© OpenStreetMap contributors / WhereGroup Demo WMS'
   },
   chapters: [
     {
