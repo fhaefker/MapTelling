@@ -2,6 +2,10 @@
 
 A curated, structured knowledge base of the MapComponents ecosystem for reuse in future tasks. Updated: 2025-09-04 (verified against @mapcomponents/react-maplibre v1.3.3 upstream source).
 
+<!-- API_SURFACE_SUMMARY_START -->
+API Surface Hash: `f4ca9a7c4de6`  | Components: 673 | Hooks: 27 | Utilities: 98 | Styles: 0 | Contexts: 0
+<!-- API_SURFACE_SUMMARY_END -->
+
 ---
 ## 1. Core Philosophy
 - Declarative GIS application development in React.

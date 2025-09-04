@@ -4,14 +4,31 @@
  * Goal: Parse installed @mapcomponents/react-maplibre type declarations and
  * produce machine + human readable summaries.
  */
-import { Project, Symbol as MorphSymbol, InterfaceDeclaration, Type } from 'ts-morph';
+import { Project } from 'ts-morph';
 import * as fs from 'fs';
 import * as path from 'path';
+import { createHash } from 'crypto';
 
-interface PropEntry { name: string; type: string; optional: boolean; description?: string; }
-interface ComponentEntry { name: string; kind: 'component'|'hook'|'utility'|'type'|'const'; props?: PropEntry[]; description?: string; raw?: string; }
+interface PropEntry { name: string; type: string; optional: boolean; description?: string; deprecated?: boolean }
+interface ComponentEntry { name: string; kind: 'component'|'hook'|'utility'|'type'|'const'|'style'|'context'; props?: PropEntry[]; description?: string; raw?: string; deprecated?: boolean }
 
 const pkg = '@mapcomponents/react-maplibre';
+
+// Basic deny/allow lists (can evolve)
+const denyList = new Set<string>([
+  'default', // synthetic
+]);
+// Optionally force kind overrides
+const styleSuffix = 'Style';
+
+// Marker classification helpers
+function classifyKind(name: string, current: ComponentEntry['kind']): ComponentEntry['kind'] {
+  if (isHook(name)) return 'hook';
+  if (isProbablyComponent(name)) return 'component';
+  if (name.endsWith(styleSuffix)) return 'style';
+  if (/Context$/.test(name)) return 'context';
+  return current;
+}
 
 function isProbablyComponent(name: string) { return /^[A-Z]/.test(name) && !name.startsWith('use'); }
 function isHook(name: string) { return /^use[A-Z0-9].+/.test(name); }
@@ -42,11 +59,9 @@ for (const sf of sourceFiles) {
   sf.getExportSymbols().forEach(sym => {
     const name = sym.getName();
     if (exportMap[name]) return; // de-dupe
+    if (denyList.has(name)) return;
     const decl = sym.getDeclarations()[0];
-    const entry: ComponentEntry = { name, kind: 'utility' };
-
-    if (isHook(name)) entry.kind = 'hook';
-    else if (isProbablyComponent(name)) entry.kind = 'component';
+    const entry: ComponentEntry = { name, kind: classifyKind(name,'utility') };
 
     // Try to derive props for components (React.FC<Props>)
     try {
@@ -65,8 +80,9 @@ for (const sf of sourceFiles) {
               const optional = (d as any).hasQuestionToken?.();
               let description = '';
               const jsDocs = (d as any).getJsDocs?.() || [];
-              if (jsDocs.length) description = jsDocs.map((j: any)=>j.getComment()).filter(Boolean).join('\n');
-              props.push({ name: p.getName(), type: t.getText(), optional: !!optional, description });
+        if (jsDocs.length) description = jsDocs.map((j: any)=>j.getComment()).filter(Boolean).join('\n');
+        const deprecated = /@deprecated/i.test(description);
+        props.push({ name: p.getName(), type: simplifyType(t.getText()), optional: !!optional, description, deprecated });
             });
             entry.props = props;
           }
@@ -76,6 +92,7 @@ for (const sf of sourceFiles) {
       const jsDocs = (decl as any).getJsDocs?.() || [];
       if (jsDocs.length) entry.description = jsDocs.map((j: any)=>j.getComment()).filter(Boolean).join('\n');
       entry.raw = type.getText();
+      entry.deprecated = /@deprecated/i.test(entry.description || '');
     } catch (err) {
       entry.description = (entry.description || '') + '\n(Extraction error: ' + (err as Error).message + ')';
     }
@@ -87,16 +104,21 @@ for (const sf of sourceFiles) {
 // Categorize & Sort
 const entries = Object.values(exportMap).sort((a,b)=>a.name.localeCompare(b.name));
 
-// Output JSON
+// Output JSON & meta
 const outDir = path.resolve(process.cwd(), 'docs/generated');
 fs.mkdirSync(outDir, { recursive: true });
-fs.writeFileSync(path.join(outDir, 'mapcomponents-api.json'), JSON.stringify(entries, null, 2), 'utf8');
+const jsonString = JSON.stringify(entries, null, 2);
+fs.writeFileSync(path.join(outDir, 'mapcomponents-api.json'), jsonString, 'utf8');
+const hash = createHash('sha256').update(jsonString).digest('hex');
+
+const counts = entries.reduce((acc, e) => { acc[e.kind] = (acc[e.kind]||0)+1; return acc; }, {} as Record<string, number>);
+fs.writeFileSync(path.join(outDir, 'mapcomponents-api.meta.json'), JSON.stringify({ hash, generated: new Date().toISOString(), counts }, null, 2));
 
 // Output Markdown
 let md = '# MapComponents API (Automatisch extrahiert)\n\n';
 md += `Generiert: ${new Date().toISOString()}  \nQuelle: ${pkg}\n\n`;
 
-const groups: Record<string, ComponentEntry[]> = { component: [], hook: [], utility: [], type: [], const: [] };
+const groups: Record<string, ComponentEntry[]> = { component: [], hook: [], utility: [], type: [], const: [], style: [], context: [] };
 entries.forEach(e => groups[e.kind].push(e));
 
 function section(title: string, kind: keyof typeof groups) {
@@ -118,11 +140,47 @@ function section(title: string, kind: keyof typeof groups) {
 section('Komponenten', 'component');
 section('Hooks', 'hook');
 section('Utilities', 'utility');
+section('Styles', 'style');
+section('Contexts', 'context');
+
+// Generate condensed prop matrix for core components
+const coreComponentNames = ['MapLibreMap','MlGeoJsonLayer'];
+let matrix = '# Core Component Prop Matrix\n\n| Component | Prop | Type | Optional | Deprecated | Description |\n|-----------|------|------|----------|------------|-------------|\n';
+entries.filter(e=>coreComponentNames.includes(e.name) && e.props).forEach(e => {
+  e.props!.forEach(p => {
+    matrix += `| ${e.name} | ${p.name} | \`${p.type}\` | ${p.optional?'yes':'no'} | ${p.deprecated?'yes':'no'} | ${(p.description||'').split(/\n/)[0]} |\n`;
+  });
+});
+fs.writeFileSync(path.join(outDir,'mapcomponents-prop-matrix.md'), matrix, 'utf8');
+
+// Insert/update summary markers in capabilities doc if present
+const capabilitiesPath = path.resolve(process.cwd(),'../MAPCOMPONENTS_CAPABILITIES.md');
+if (fs.existsSync(capabilitiesPath)) {
+  let doc = fs.readFileSync(capabilitiesPath,'utf8');
+  const markerStart = '<!-- API_SURFACE_SUMMARY_START -->';
+  const markerEnd = '<!-- API_SURFACE_SUMMARY_END -->';
+  const summary = `API Surface Hash: \`${hash.slice(0,12)}\`  | Components: ${groups.component.length} | Hooks: ${groups.hook.length} | Utilities: ${groups.utility.length} | Styles: ${groups.style.length} | Contexts: ${groups.context.length}`;
+  if (doc.includes(markerStart) && doc.includes(markerEnd)) {
+    doc = doc.replace(new RegExp(`${markerStart}[\s\S]*?${markerEnd}`,'m'), `${markerStart}\n${summary}\n${markerEnd}`);
+    fs.writeFileSync(capabilitiesPath, doc,'utf8');
+  }
+}
 
 fs.writeFileSync(path.join(outDir, 'mapcomponents-api.md'), md, 'utf8');
 
 console.log('API extraction completed:', {
+  hash: hash.slice(0,12),
   components: groups.component.length,
   hooks: groups.hook.length,
   utilities: groups.utility.length
 });
+
+// Utility: simplify noisy type strings
+function simplifyType(t: string): string {
+  return t
+    .replace(/import\([^)]*\)\./g,'')
+    .replace(/\s+/g,' ')
+    .replace(/Readonly</g,'')
+    .replace(/>;/g,'>')
+    .trim();
+}
