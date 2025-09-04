@@ -12,6 +12,10 @@ export interface ExtendedMapConfig extends MapConfig {
     version?: '1.1.1' | '1.3.0';
     attribution?: string;
   };
+  osmDemo?: {
+    baseUrl: string;
+    version?: '1.1.1' | '1.3.0';
+  }
 }
 
 // Note: Use a token-free, public demo style to avoid Mapbox. Replace with your own style if needed.
@@ -30,6 +34,14 @@ export const config: ExtendedMapConfig = {
   // WMS fallback (replace baseUrl & layers with a confirmed WhereGroup endpoint when available)
   // WMS fallback entfernt bis eine eigene / WhereGroup OSM WMS Quelle verifiziert ist.
   wmsFallback: undefined,
+  // WhereGroup OSM demo root remembered by user; capabilities at /ows?service=WMS&request=GetCapabilities
+  // We'll reference it elsewhere when implementing dynamic WMS layer injection.
+  // Just storing base for future use.
+  // Not yet wired to runtime style fallback logic.
+  osmDemo: {
+    baseUrl: 'https://osm-demo.wheregroup.com/ows?',
+    version: '1.3.0'
+  },
   chapters: [
     {
       id: 'Day00_Overview',
