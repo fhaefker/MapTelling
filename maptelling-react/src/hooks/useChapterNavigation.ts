@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useMap } from '@mapcomponents/react-maplibre';
 import type { Chapter } from '../types/story';
+import { useCameraOffset } from './useCameraOffset';
 
 /**
  * useChapterNavigation
@@ -41,6 +42,7 @@ export const useChapterNavigation = (opts: UseChapterNavigationOptions): Chapter
   const [currentChapter, setCurrentChapter] = useState(initialChapter);
   const [isPlaying, setIsPlaying] = useState<boolean>(autoplay);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const applyOffset = useCameraOffset(mapId, offsetPxLeft);
 
   const clearTimer = () => {
     if (timerRef.current) {
@@ -54,14 +56,7 @@ export const useChapterNavigation = (opts: UseChapterNavigationOptions): Chapter
     const chapter = chapters[index];
     if (!chapter) return;
     const { center, zoom, bearing = 0, pitch = 0 } = chapter.location;
-    let targetCenter = center;
-    if (offsetPxLeft !== 0) {
-      try {
-        const c = map.map.project(center as any);
-        c.x += offsetPxLeft; // move projected point right, so content appears more rightwards relative to left UI
-        targetCenter = map.map.unproject(c) as any;
-      } catch {/* ignore */}
-    }
+  const targetCenter = applyOffset(center as any);
     if (immediate) {
       map.map.jumpTo({ center: targetCenter, zoom, bearing, pitch });
     } else {
@@ -76,7 +71,7 @@ export const useChapterNavigation = (opts: UseChapterNavigationOptions): Chapter
         ...flyOptions,
       });
     }
-  }, [map?.map, chapters, flyOptions, offsetPxLeft]);
+  }, [map?.map, chapters, flyOptions, applyOffset]);
 
   const goToChapter = useCallback((index: number, immediate?: boolean) => {
     if (index < 0 || index >= chapters.length) return;
