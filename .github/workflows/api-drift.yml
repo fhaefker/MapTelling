@@ -1,0 +1,43 @@
+name: API Drift Check
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  api-drift:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: maptelling-react
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: maptelling-react/package.json
+      - name: Install
+        run: npm ci
+      - name: Run extraction
+        run: npm run extract:api
+      - name: API surface diff
+        run: |
+          if [ -f docs/generated/mapcomponents-api.meta.json ]; then
+            HASH_NEW=$(jq -r '.hash' docs/generated/mapcomponents-api.meta.json)
+          else
+            echo 'Meta file missing'; exit 1; fi
+          # Attempt to retrieve previous commit version of meta file
+          git show HEAD^:maptelling-react/docs/generated/mapcomponents-api.meta.json > /tmp/prev.json 2>/dev/null || echo '{}' > /tmp/prev.json
+          HASH_OLD=$(jq -r '.hash' /tmp/prev.json)
+          echo "Previous hash: $HASH_OLD" || true
+          echo "Current  hash: $HASH_NEW" || true
+          if [ "$HASH_OLD" != "null" ] && [ "$HASH_OLD" != "" ] && [ "$HASH_NEW" != "$HASH_OLD" ]; then
+             echo "API surface changed (hash mismatch)";
+             echo "::warning title=API Drift Detected::Surface hash changed from $HASH_OLD to $HASH_NEW";
+          else
+             echo "No API drift detected";
+          fi
