@@ -13,7 +13,7 @@ import TerrainManager from './components/TerrainManager';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import './MapTellingApp.css';
 import InteractionController from './components/InteractionController';
-import TrackCompositeLayer from './components/TrackCompositeLayer';
+import CompositeGeoJsonLine from './components/CompositeGeoJsonLine';
 import { useChapterNavigation } from './hooks/useChapterNavigation';
 
 const MapTellingApp: React.FC = () => {
@@ -77,7 +77,7 @@ const MapTellingApp: React.FC = () => {
       />
 
     {/* Centralised interaction toggle */}
-    <InteractionController mapId="maptelling-map" interactive={interactive} />
+  <InteractionController mapId="maptelling-map" enabled={interactive} />
 
   {/* Optional 3D Terrain */}
   <TerrainManager mapId="maptelling-map" config={config.terrain} />
@@ -87,7 +87,7 @@ const MapTellingApp: React.FC = () => {
       
       {/* GeoJSON Track Layer with MapComponents */}
       {isMapLoaded && trackData && (
-        <TrackCompositeLayer mapId="maptelling-map" data={trackData} />
+        <CompositeGeoJsonLine mapId="maptelling-map" data={trackData} idBase="route" color="#ff6b6b" />
       )}
 
       {/* Inset Map (Overview) */}

@@ -1,9 +1,11 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
+
+// Mock MapTellingApp to avoid executing Vite-specific import.meta code in tests
+jest.mock('./MapTellingApp', () => () => <div>MapTellingApp Mock</div>);
 import App from './App';
 
-test('renders learn react link', () => {
+test('renders mocked app container', () => {
   render(<App />);
-  const linkElement = screen.getByText(/learn react/i);
-  expect(linkElement).toBeInTheDocument();
+  expect(screen.getByText(/MapTellingApp Mock/)).toBeInTheDocument();
 });

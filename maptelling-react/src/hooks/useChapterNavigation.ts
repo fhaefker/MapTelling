@@ -2,6 +2,18 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { useMap } from '@mapcomponents/react-maplibre';
 import type { Chapter } from '../config/mapConfig';
 
+/**
+ * useChapterNavigation
+ * High-level camera workflow abstraction for scrollytelling style chapter sequences.
+ * Responsibilities:
+ *  - Maintain current chapter index
+ *  - Provide imperative nav helpers (next/previous/goTo/togglePlay)
+ *  - Manage optional autoplay timer (no interval allocated when inactive)
+ *  - Apply map camera transitions via jumpTo/flyTo (respecting provided fly overrides)
+ *  - Keep logic side-effect free when map not yet ready
+ *  - (Future) emit wrapper events (chapterchange) when upstream supports custom bus extension
+ */
+
 export interface UseChapterNavigationOptions {
   mapId: string;
   chapters: Chapter[];
