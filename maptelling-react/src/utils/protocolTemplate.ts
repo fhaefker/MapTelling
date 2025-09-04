@@ -33,22 +33,28 @@ export const csvOrTsvTransform = async (raw: string, params: URLSearchParams) =>
   return parseDelimited(raw, delim);
 };
 
+export const DEFAULT_MAX_PROTOCOL_BYTES = 5_000_000; // 5MB soft cap
+export const HARD_MAX_PROTOCOL_BYTES = 50_000_000; // 50MB absolute safety clamp
+
 export const createTextProtocolHandler = (opts: ProtocolHandlerOptions = {}) => {
-  const { maxBytes = 5_000_000, allowPattern, transform } = opts;
+  const { maxBytes = DEFAULT_MAX_PROTOCOL_BYTES, allowPattern, transform } = opts;
+  const effectiveMax = Math.min(Math.max(1_000, maxBytes), HARD_MAX_PROTOCOL_BYTES); // clamp between 1KB and HARD_MAX
   return async function handler(request: any) {
-    const url = request.url as string;
-    // MapLibre passes e.g. csv://... full string
-    const parsed = new URL(url.replace(/^(\w+):\/\//, 'https://')); // temp scheme swap for parsing
+    const rawUrl = request.url as string;
+    if (typeof rawUrl !== 'string') throw new Error('Invalid request url');
+    // Normalize scheme for parsing (csv://host/path -> https://host/path)
+    const parsed = new URL(rawUrl.replace(/^[a-zA-Z0-9+.-]+:\/\//, 'https://'));
     if (allowPattern && !allowPattern.test(parsed.href)) {
       throw new Error('Blocked by allowPattern');
     }
-    const res = await fetch(parsed.href);
+    let res: Response;
+    try { res = await fetch(parsed.href); } catch (e:any) { throw new Error('Fetch failed: '+ (e?.message||e)); }
     const blob = await res.blob();
-    if (blob.size > maxBytes) throw new Error('Payload too large');
+    if (blob.size > effectiveMax) throw new Error(`Payload too large (${blob.size} > ${effectiveMax})`);
     const text = await blob.text();
     const qs = parsed.searchParams;
-  const out = transform ? await transform(text, qs) : { text };
-  return { data: out };
+    const out = transform ? await transform(text, qs) : { text };
+    return { data: out };
   };
 };
 
