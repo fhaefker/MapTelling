@@ -50,50 +50,82 @@ const InnerApp: React.FC = () => {
   // Map load flag
   useEffect(() => { if (mapHook.map) setIsMapLoaded(true); }, [mapHook.map]);
 
-  // QW-05: Prefetch style JSON -> reduzieren Style Flash (mit Fallback-Kette aus config.vectorStyleCandidates)
+  // WMS Primary: build raster style if configured (user request) unless vector override specified (?vector=1)
   useEffect(() => {
     let cancelled = false;
-    const candidates: string[] = [];
-    try {
-      if (typeof window !== 'undefined') {
-        const p = new URLSearchParams(window.location.search).get('style');
-        if (p) candidates.push(p);
-      }
-    } catch {/* ignore */}
-    if (Array.isArray((config as any).vectorStyleCandidates)) {
-      candidates.push(...(config as any).vectorStyleCandidates);
+    const search = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : undefined;
+    const forceVector = search?.get('vector') === '1';
+    if (!forceVector && (config as any).wmsPrimary) {
+      const wms = (config as any).wmsPrimary as {
+        baseUrl: string; version: string; layerCandidates: string[]; format?: string; attribution?: string;
+      };
+      const format = wms.format || 'image/png';
+      const layer = wms.layerCandidates[0]; // simple first match (could be improved by capabilities parse)
+      const tileUrl = `${wms.baseUrl}service=WMS&request=GetMap&version=${wms.version}`+
+        `&layers=${encodeURIComponent(layer)}&styles=&format=${encodeURIComponent(format)}`+
+        `&transparent=false&crs=EPSG:3857&width=256&height=256&bbox={bbox-epsg-3857}&TILED=TRUE`;
+      const rasterStyle = {
+        version: 8,
+        name: 'Primary WMS Base',
+        sources: {
+          wms: {
+            type: 'raster',
+            tiles: [tileUrl],
+            tileSize: 256,
+            attribution: wms.attribution || 'WMS'
+          }
+        },
+        layers: [
+          { id: 'wms-base', type: 'raster', source: 'wms' }
+        ]
+      } as any;
+      setStyleObject(rasterStyle);
+      setStyleError(null);
     } else {
-      candidates.push(config.style);
-      candidates.push('https://demotiles.maplibre.org/style.json');
-    }
-    (async () => {
-      for (const url of candidates) {
-        try {
-          setStyleError(null);
-          const res = await fetch(url, { mode: 'cors' });
-          if (!res.ok) { continue; }
-          const txt = await res.text();
+      // Vector path (fallback or forced)
+      let cancelledVector = false;
+      const candidates: string[] = [];
+      try {
+        if (typeof window !== 'undefined') {
+          const p = new URLSearchParams(window.location.search).get('style');
+          if (p) candidates.push(p);
+        }
+      } catch {/* ignore */}
+      if (Array.isArray((config as any).vectorStyleCandidates)) {
+        candidates.push(...(config as any).vectorStyleCandidates);
+      } else {
+        candidates.push(config.style);
+        candidates.push('https://demotiles.maplibre.org/style.json');
+      }
+      (async () => {
+        for (const url of candidates) {
           try {
-            const json = JSON.parse(txt);
-            if (!cancelled) {
-              setStyleObject(json);
-              if (url !== config.style) {
-                setStyleError(`Primary style failed. Using fallback: ${url}`);
+            setStyleError(null);
+            const res = await fetch(url, { mode: 'cors' });
+            if (!res.ok) { continue; }
+            const txt = await res.text();
+            try {
+              const json = JSON.parse(txt);
+              if (!cancelled && !cancelledVector) {
+                setStyleObject(json);
+                if (url !== config.style) {
+                  setStyleError(`Primary style failed. Using fallback: ${url}`);
+                }
+                break;
               }
-              break;
+            } catch (e:any) {
+              if (!cancelledVector) {
+                setStyleError(`Style parse failed for ${url}: ${(e && e.message) || 'invalid JSON'}`);
+              }
+              continue;
             }
           } catch (e:any) {
-            // Response war vermutlich HTML (Fehlerseite)
-            if (!cancelled) {
-              setStyleError(`Style parse failed for ${url}: ${(e && e.message) || 'invalid JSON'}`);
-            }
-            continue;
+            if (!cancelledVector) setStyleError(`Style request error for ${url}: ${(e && e.message) || 'network'}`);
           }
-        } catch (e:any) {
-          if (!cancelled) setStyleError(`Style request error for ${url}: ${(e && e.message) || 'network'}`);
         }
-      }
-    })();
+      })();
+      return () => { cancelledVector = true; };
+    }
     return () => { cancelled = true; };
   }, []);
 
@@ -155,7 +187,7 @@ const InnerApp: React.FC = () => {
   <MapLibreMap 
         mapId="maptelling-map"
         options={{
-      style: styleObject || config.style, // QW-05 preloaded object falls vorhanden (bestehender Fallback)
+  style: styleObject || config.style, // either generated WMS raster style or vector JSON
       center: startChapter.location.center,
       zoom: startChapter.location.zoom,
       bearing: startChapter.location.bearing || 0,
