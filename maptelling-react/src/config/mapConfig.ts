@@ -28,13 +28,8 @@ export const config: ExtendedMapConfig = {
     'https://demotiles.maplibre.org/style.json'
   ],
   // WMS fallback (replace baseUrl & layers with a confirmed WhereGroup endpoint when available)
-  wmsFallback: {
-    baseUrl: 'https://ows.terrestris.de/osm/service', // TODO: swap for WhereGroup OSM WMS when known
-    layers: 'OSM-WMS',
-    format: 'image/png',
-    version: '1.1.1',
-    attribution: '© OpenStreetMap contributors'
-  },
+  // WMS fallback entfernt bis eine eigene / WhereGroup OSM WMS Quelle verifiziert ist.
+  wmsFallback: undefined,
   chapters: [
     {
       id: 'Day00_Overview',
