@@ -50,7 +50,7 @@ const InnerApp: React.FC = () => {
   // Map load flag
   useEffect(() => { if (mapHook.map) setIsMapLoaded(true); }, [mapHook.map]);
 
-  // QW-05: Prefetch style JSON -> reduzieren Style Flash (mit Fallback-Kette)
+  // QW-05: Prefetch style JSON -> reduzieren Style Flash (mit Fallback-Kette aus config.vectorStyleCandidates)
   useEffect(() => {
     let cancelled = false;
     const candidates: string[] = [];
@@ -60,11 +60,12 @@ const InnerApp: React.FC = () => {
         if (p) candidates.push(p);
       }
     } catch {/* ignore */}
-    candidates.push(config.style);
-    // Fallback öffentliche Demo Styles (MapLibre, OSM Liberty mirror, etc.)
-    candidates.push(
-      'https://demotiles.maplibre.org/style.json'
-    );
+    if (Array.isArray((config as any).vectorStyleCandidates)) {
+      candidates.push(...(config as any).vectorStyleCandidates);
+    } else {
+      candidates.push(config.style);
+      candidates.push('https://demotiles.maplibre.org/style.json');
+    }
     (async () => {
       for (const url of candidates) {
         try {

@@ -1,9 +1,40 @@
 import type { MapConfig } from '../types/story';
 
+// Extended base map configuration supporting multiple vector style candidates
+// and a WMS fallback (if all vector styles fail). The WMS endpoint here is
+// a placeholder; replace with a verified WhereGroup OSM WMS once available.
+export interface ExtendedMapConfig extends MapConfig {
+  vectorStyleCandidates?: string[]; // Ordered preference list
+  wmsFallback?: {
+    baseUrl: string; // WMS service endpoint without parameters
+    layers: string;  // Comma separated layer list
+    format?: string; // Default image/png
+    version?: '1.1.1' | '1.3.0';
+    attribution?: string;
+  };
+}
+
 // Note: Use a token-free, public demo style to avoid Mapbox. Replace with your own style if needed.
-export const config: MapConfig = {
+export const config: ExtendedMapConfig = {
   // WhereGroup tileserver demo style (corrected URL)
   style: 'https://wms.wheregroup.com/tileserver/styles/bright/style.json',
+  // Additional candidate style URLs (first that loads wins). Include MapLibre demo as safe final vector fallback.
+  vectorStyleCandidates: [
+    'https://wms.wheregroup.com/tileserver/styles/bright/style.json',
+    // Potential alternative style names (guessed common OpenMapTiles presets) - kept for future verification
+    'https://wms.wheregroup.com/tileserver/styles/basic/style.json',
+    'https://wms.wheregroup.com/tileserver/styles/openmaptiles/style.json',
+    // Public demo fallback
+    'https://demotiles.maplibre.org/style.json'
+  ],
+  // WMS fallback (replace baseUrl & layers with a confirmed WhereGroup endpoint when available)
+  wmsFallback: {
+    baseUrl: 'https://ows.terrestris.de/osm/service', // TODO: swap for WhereGroup OSM WMS when known
+    layers: 'OSM-WMS',
+    format: 'image/png',
+    version: '1.1.1',
+    attribution: '© OpenStreetMap contributors'
+  },
   chapters: [
     {
       id: 'Day00_Overview',
