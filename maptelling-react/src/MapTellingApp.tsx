@@ -35,6 +35,7 @@ const InnerApp: React.FC = () => {
   const [trackData, setTrackData] = useState<FeatureCollection<LineString> | null>(null);
   const [trackError, setTrackError] = useState<string | null>(null); // QW-02 Fehlerzustand
   const [styleObject, setStyleObject] = useState<any | null>(null); // QW-05 Prefetched Style
+  const [styleError, setStyleError] = useState<string | null>(null);
   const [terrainEnabled, setTerrainEnabled] = useState<boolean>(!!config.terrain?.enabled); // QW-08 Toggle Terrain
   const t = useT();
   const debugEnabled = typeof window !== 'undefined' && window.location.search.includes('debug');
@@ -49,16 +50,48 @@ const InnerApp: React.FC = () => {
   // Map load flag
   useEffect(() => { if (mapHook.map) setIsMapLoaded(true); }, [mapHook.map]);
 
-  // QW-05: Prefetch style JSON -> reduzieren Style Flash
+  // QW-05: Prefetch style JSON -> reduzieren Style Flash (mit Fallback-Kette)
   useEffect(() => {
     let cancelled = false;
+    const candidates: string[] = [];
+    try {
+      if (typeof window !== 'undefined') {
+        const p = new URLSearchParams(window.location.search).get('style');
+        if (p) candidates.push(p);
+      }
+    } catch {/* ignore */}
+    candidates.push(config.style);
+    // Fallback öffentliche Demo Styles (MapLibre, OSM Liberty mirror, etc.)
+    candidates.push(
+      'https://demotiles.maplibre.org/style.json'
+    );
     (async () => {
-      try {
-        const res = await fetch(config.style);
-        if (!res.ok) return;
-        const json = await res.json();
-        if (!cancelled) setStyleObject(json);
-      } catch {/* ignore */}
+      for (const url of candidates) {
+        try {
+          setStyleError(null);
+          const res = await fetch(url, { mode: 'cors' });
+          if (!res.ok) { continue; }
+          const txt = await res.text();
+          try {
+            const json = JSON.parse(txt);
+            if (!cancelled) {
+              setStyleObject(json);
+              if (url !== config.style) {
+                setStyleError(`Primary style failed. Using fallback: ${url}`);
+              }
+              break;
+            }
+          } catch (e:any) {
+            // Response war vermutlich HTML (Fehlerseite)
+            if (!cancelled) {
+              setStyleError(`Style parse failed for ${url}: ${(e && e.message) || 'invalid JSON'}`);
+            }
+            continue;
+          }
+        } catch (e:any) {
+          if (!cancelled) setStyleError(`Style request error for ${url}: ${(e && e.message) || 'network'}`);
+        }
+      }
     })();
     return () => { cancelled = true; };
   }, []);
@@ -121,7 +154,7 @@ const InnerApp: React.FC = () => {
   <MapLibreMap 
         mapId="maptelling-map"
         options={{
-      style: styleObject || config.style, // QW-05 preloaded object falls vorhanden
+      style: styleObject || config.style, // QW-05 preloaded object falls vorhanden (bestehender Fallback)
       center: startChapter.location.center,
       zoom: startChapter.location.zoom,
       bearing: startChapter.location.bearing || 0,
@@ -168,6 +201,11 @@ const InnerApp: React.FC = () => {
       {trackError && (
         <div style={{ position:'absolute', top:40, right:8, background:'#ff6b6b', color:'#fff', padding:'4px 8px', borderRadius:4, zIndex:5 }}>
           {trackError}
+        </div>
+      )}
+      {styleError && (
+        <div style={{ position:'absolute', top:70, right:8, maxWidth:260, background:'#ffb347', color:'#222', padding:'4px 8px', borderRadius:4, zIndex:5, fontSize:12 }}>
+          {styleError}
         </div>
       )}
 
