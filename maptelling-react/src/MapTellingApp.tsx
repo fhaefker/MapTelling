@@ -261,6 +261,7 @@ const InnerApp: React.FC = () => {
   <StoryScroller
         currentChapter={currentChapter}
   disabled={interactive}
+  passThrough={interactive}
         onEnterChapter={(idx) => {
           if (!interactive) navigateToChapter(idx);
         }}

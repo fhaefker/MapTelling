@@ -6,9 +6,10 @@ interface StoryScrollerProps {
   currentChapter: number;
   onEnterChapter: (index: number) => void;
   disabled?: boolean; // when true, ignore scroll-based chapter changes
+  passThrough?: boolean; // when true, let pointer events hit map (free navigation mode)
 }
 
-const StoryScroller: React.FC<StoryScrollerProps> = ({ currentChapter, onEnterChapter, disabled }) => {
+const StoryScroller: React.FC<StoryScrollerProps> = ({ currentChapter, onEnterChapter, disabled, passThrough }) => {
   return (
     <div
       style={{
@@ -17,8 +18,8 @@ const StoryScroller: React.FC<StoryScrollerProps> = ({ currentChapter, onEnterCh
         left: 0,
         right: 0,
         bottom: 0,
-        overflowY: 'auto',
-        pointerEvents: 'auto',
+  overflowY: passThrough ? 'hidden' : 'auto',
+  pointerEvents: passThrough ? 'none' : 'auto',
         zIndex: 5,
         padding: '16px',
       }}
