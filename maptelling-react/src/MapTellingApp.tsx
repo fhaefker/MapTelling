@@ -14,8 +14,9 @@ const NavigationControls = lazy(() => import('./components/NavigationControls'))
 const ModeToggle = lazy(() => import('./components/ModeToggle'));
 const MarkerLayer = lazy(() => import('./components/MarkerLayer'));
 const StoryScroller = lazy(() => import('./components/StoryScroller'));
-const StoryCreator = lazy(() => import('./components/StoryCreator'));
+const StoryCreator = lazy(() => import('./components/StoryCreator')); // retained for code-split but not directly mounted
 const StoryEditor = lazy(() => import('./components/StoryEditor'));
+const StoryMenu = lazy(() => import('./components/StoryMenu'));
 const InsetMap = lazy(() => import('./components/InsetMap'));
 const MlTerrain = lazy(() => import('./components/MlTerrain'));
 import 'maplibre-gl/dist/maplibre-gl.css';
@@ -334,9 +335,11 @@ const InnerApp: React.FC = () => {
       {/* Settings Panel */}
       <div style={{ position:'fixed', bottom:8, right:8, zIndex:35, background:'rgba(0,0,0,0.55)', padding:12, borderRadius:6, color:'#fff', width:260, fontSize:12 }}>
         <div style={{ fontWeight:600, marginBottom:6 }}>Einstellungen</div>
-        <label style={{ display:'block', marginBottom:6 }}>Terrain Exaggeration: {terrainExag.toFixed(2)}
-          <input type="range" min={0.5} max={3} step={0.1} value={terrainExag} onChange={e=>setTerrainExag(parseFloat(e.target.value))} style={{ width:'100%' }} />
-        </label>
+        {terrainEnabled && (
+          <label style={{ display:'block', marginBottom:6 }}>Terrain Exaggeration: {terrainExag.toFixed(2)}
+            <input type="range" min={0.5} max={3} step={0.1} value={terrainExag} onChange={e=>setTerrainExag(parseFloat(e.target.value))} style={{ width:'100%' }} />
+          </label>
+        )}
         <label style={{ display:'block', marginBottom:6 }}>Transition Speed: {transitionSpeed.toFixed(2)}
           <input type="range" min={0.2} max={2} step={0.1} value={transitionSpeed} onChange={e=>setTransitionSpeed(parseFloat(e.target.value))} style={{ width:'100%' }} />
         </label>
@@ -348,13 +351,9 @@ const InnerApp: React.FC = () => {
         </label>
         <div style={{ opacity:0.7, fontSize:11 }}>Hotkeys: F freie Navi, T Terrain, P Perf</div>
       </div>
-      {/* Story Creator Panel */}
+      {/* Unified Story Menu (Creator + Editor) */}
       <Suspense fallback={null}>
-        <StoryCreator />
-      </Suspense>
-      {/* Story Editor Panel (edit existing chapters) */}
-      <Suspense fallback={null}>
-        <StoryEditor />
+        <StoryMenu />
       </Suspense>
       {/* Terrain pitch fallback effect note */}
       {terrainEnabled && !config.terrain?.tiles && (

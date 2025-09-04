@@ -6,10 +6,13 @@ import { useT } from '../i18n/I18nProvider';
 
 interface StoryCreatorProps {
   onCreated?: (id: string) => void;
+  embedded?: boolean; // eingebettet in StoryMenu
+  open?: boolean; // kontrollierter Zustand bei embedded
+  onToggleOpen?: (next: boolean) => void; // callback bei toggle (embedded ignoriert eigenen Button)
 }
 
 // Simple inline story creation panel (demo). In a real app this might be a modal.
-const StoryCreator: React.FC<StoryCreatorProps> = ({ onCreated }) => {
+const StoryCreator: React.FC<StoryCreatorProps> = ({ onCreated, embedded, open, onToggleOpen }) => {
   const { addChapter } = useChapters();
   const t = useT();
   const mapCtx: any = useMap({ mapId: 'maptelling-map' });
@@ -22,12 +25,20 @@ const StoryCreator: React.FC<StoryCreatorProps> = ({ onCreated }) => {
   const [zoom, setZoom] = useState<string>('5');
   const [markerLng, setMarkerLng] = useState<string>('');
   const [markerLat, setMarkerLat] = useState<string>('');
-  const [open, setOpen] = useState(false);
+  const [selfOpen, setSelfOpen] = useState(false);
+  const isControlled = !!embedded && typeof open === 'boolean';
+  const actualOpen = isControlled ? open : selfOpen;
   const [picking, setPicking] = useState<null | 'center' | 'marker'>(null);
   const [message, setMessage] = useState<string>('');
   const [errors, setErrors] = useState<Record<string,string>>({});
 
-  const toggle = () => setOpen(o => !o);
+  const toggle = () => {
+    if (isControlled) {
+      onToggleOpen && onToggleOpen(!actualOpen);
+    } else {
+      setSelfOpen(o => !o);
+    }
+  };
 
   const onFile = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -93,22 +104,18 @@ const StoryCreator: React.FC<StoryCreatorProps> = ({ onCreated }) => {
       marker
     });
     if (onCreated) onCreated(chapter.id);
-    setOpen(false);
+    if (isControlled) {
+      onToggleOpen && onToggleOpen(false);
+    } else {
+      setSelfOpen(false);
+    }
     setTitle(''); setDescription(''); setImageData(undefined); setMarkerLng(''); setMarkerLat('');
     setMessage(t('creator.saved'));
     setTimeout(()=> setMessage(''), 2500);
   };
 
-  return (
-    <div style={{ position:'fixed', left:8, bottom:8, zIndex:20 }}>
-      <button onClick={toggle} style={{ padding:'6px 10px', borderRadius:4, background:'#3FB1CE', color:'#fff', border:'none', cursor:'pointer', marginRight:6 }}>
-        {open ? t('creator.close') : t('creator.open')}
-      </button>
-      {open && (
-        <button onClick={() => { resetStoredChapters(); window.location.reload(); }} style={{ padding:'6px 10px', borderRadius:4, background:'#555', color:'#fff', border:'none', cursor:'pointer' }}>{t('creator.clearStored')}</button>
-      )}
-      {open && (
-        <form onSubmit={submit} style={{ marginTop:8, background:'#fff', padding:12, width:320, maxHeight:'70vh', overflow:'auto', borderRadius:6, boxShadow:'0 4px 14px rgba(0,0,0,0.15)', fontSize:12 }}>
+  const panel = actualOpen && (
+    <form onSubmit={submit} style={{ marginTop: embedded ? 0 : 8, background:'#fff', padding:12, width:320, maxHeight:'70vh', overflow:'auto', borderRadius:6, boxShadow:'0 4px 14px rgba(0,0,0,0.15)', fontSize:12 }}>
           <label style={{ display:'block', marginBottom:4 }}>{t('creator.title')}<input value={title} onChange={e=>setTitle(e.target.value)} style={{ width:'100%' }} /></label>
           <label style={{ display:'block', marginBottom:4 }}>{t('creator.description')}<textarea value={description} onChange={e=>setDescription(e.target.value)} style={{ width:'100%', minHeight:60 }} /></label>
           <label style={{ display:'block', marginBottom:4 }}>{t('creator.alignment')}
@@ -142,7 +149,24 @@ const StoryCreator: React.FC<StoryCreatorProps> = ({ onCreated }) => {
           <button type="submit" style={{ background:'#222', color:'#fff', padding:'6px 10px', border:'none', borderRadius:4, cursor:'pointer', width:'100%' }}>{t('creator.submit')}</button>
           {message && <div style={{ marginTop:6, color:'#2b7a2b', fontSize:11 }}>{message}</div>}
         </form>
+  );
+
+  if (embedded) {
+    return (
+      <div>
+        {panel}
+      </div>
+    );
+  }
+  return (
+    <div style={{ position:'fixed', left:8, bottom:8, zIndex:20 }}>
+      <button onClick={toggle} style={{ padding:'6px 10px', borderRadius:4, background:'#3FB1CE', color:'#fff', border:'none', cursor:'pointer', marginRight:6 }}>
+        {actualOpen ? t('creator.close') : t('creator.open')}
+      </button>
+      {actualOpen && (
+        <button onClick={() => { resetStoredChapters(); window.location.reload(); }} style={{ padding:'6px 10px', borderRadius:4, background:'#555', color:'#fff', border:'none', cursor:'pointer' }}>{t('creator.clearStored')}</button>
       )}
+      {panel}
     </div>
   );
 };
