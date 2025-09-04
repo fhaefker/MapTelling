@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { MapLibreMap, MlGeoJsonLayer, useMap } from '@mapcomponents/react-maplibre';
 import { motion } from 'framer-motion';
 import type { FeatureCollection, LineString } from 'geojson';
@@ -15,11 +15,14 @@ import './MapTellingApp.css';
 import InteractionController from './components/InteractionController';
 import CompositeGeoJsonLine from './components/CompositeGeoJsonLine';
 import { useChapterNavigation } from './hooks/useChapterNavigation';
+import { usePerformanceInstrumentation } from './hooks/usePerformanceInstrumentation';
+import { useViewportSync } from './hooks/useViewportSync';
 
 const MapTellingApp: React.FC = () => {
   const [interactive, setInteractive] = useState<boolean>(false);
   const [isMapLoaded, setIsMapLoaded] = useState<boolean>(false);
   const [trackData, setTrackData] = useState<FeatureCollection<LineString> | null>(null);
+  const [metrics, setMetrics] = useState<Record<string, number>>({});
   
   const mapHook = useMap({
     mapId: 'maptelling-map',
@@ -45,6 +48,20 @@ const MapTellingApp: React.FC = () => {
       });
   }, []);
 
+  // Performance instrumentation (capabilities sec56)
+  usePerformanceInstrumentation({
+    mapId: 'maptelling-map',
+    sampleFpsDuringMs: 2000,
+    onMetrics: (m) => setMetrics(m),
+  });
+
+  // Optional underlying inset map sync (story mode only)
+  useViewportSync({
+    sourceMapId: 'maptelling-map',
+    targetMapId: 'inset-map',
+    shouldSync: () => !interactive,
+  });
+
   // Chapter navigation hook (centralised)
   const {
     currentChapter,
@@ -57,12 +74,12 @@ const MapTellingApp: React.FC = () => {
 
   // Scroll-driven Story integration moved below in JSX
 
-  const toggleInteractive = () => setInteractive(p => !p);
+  const toggleInteractive = useCallback(() => setInteractive(p => !p), []);
 
   return (
     <div className="map-telling-app">
     {/* MapLibre Map with MapComponents */}
-      <MapLibreMap 
+    <MapLibreMap 
         mapId="maptelling-map"
         options={{
           style: config.style,
@@ -83,7 +100,7 @@ const MapTellingApp: React.FC = () => {
   <TerrainManager mapId="maptelling-map" config={config.terrain} />
 
     {/* Mode Toggle (Story vs Free Navigation) */}
-    <ModeToggle isInteractive={interactive} onToggle={toggleInteractive} />
+  <ModeToggle isInteractive={interactive} onToggle={toggleInteractive} />
       
       {/* GeoJSON Track Layer with MapComponents */}
       {isMapLoaded && trackData && (
@@ -121,6 +138,14 @@ const MapTellingApp: React.FC = () => {
         onPlayPause={togglePlayPause}
         onChapterSelect={navigateToChapter}
       />
+
+      {/* Basic metrics readout (dev only) */}
+      {metrics.time_to_load_ms && (
+        <div style={{ position: 'fixed', bottom: 8, left: 8, background: 'rgba(0,0,0,0.55)', color: '#fff', padding: '4px 8px', borderRadius: 4, fontSize: 12 }}>
+          <div>Load: {Math.round(metrics.time_to_load_ms)}ms</div>
+          {metrics.avg_fps_window && <div>FPS≈ {Math.round(metrics.avg_fps_window)}</div>}
+        </div>
+      )}
 
       {/* Progress Bar */}
       <motion.div 
