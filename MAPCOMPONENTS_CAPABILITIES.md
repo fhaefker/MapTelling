@@ -319,3 +319,98 @@ const MlCustomControl: React.FC<{ mapId: string; position?: string }> = ({ mapId
 
 ---
 Erweiterungs-Update abgeschlossen (Stand 2025-09-04). Weitere Präzisierungen nach Sichtung tatsächlicher Quell-Code-APIs empfohlen.
+
+## 27. Automatisierte API-Extraktion (Plan & Umsetzung)
+Ziel: Vollständige, verifizierte Liste öffentlicher Exporte (Komponenten, Hooks, Utility-Funktionen) von `@mapcomponents/react-maplibre` generieren, um dieses Dokument ohne manuelle Nachrecherche aktuell zu halten.
+
+### 27.1 Ziele
+- Ermitteln aller Export-Symbole (default + named) aus den *d.ts*-Dateien.
+- Klassifikation: Component (React FC / Klasse), Hook (Name beginnt mit `use`), Typ (TypeAlias / Interface), Utility (Function), Konstanten.
+- Ableitung vereinfachter Prop-Tabellen (Name, Typ, optional?, Default soweit dokumentierbar) für React-Komponenten.
+- Ausgabe in: `docs/generated/mapcomponents-api.json` + `docs/generated/mapcomponents-api.md`.
+
+### 27.2 Vorgehen
+1. `ts-morph` Projekt über Pattern: `node_modules/@mapcomponents/react-maplibre/**/*.d.ts`.
+2. Wurzel-Exports (z.B. `index.d.ts`) einsammeln (Re-Exports verfolgen).
+3. Für jedes Symbol Typstruktur inspizieren (Props = erstes generisches Param oder `React.FC<Props>` Pattern / `({ ... }: Props)` Funktionssignatur).
+4. JSDoc-Kommentare extrahieren (`getJsDocs()`), beschreibende Texte in Markdown übernehmen.
+5. Generierung Markdown-Sektionen pro Kategorie.
+
+### 27.3 Grenzen
+- Default-Werte oft nicht aus Type-Level deduzierbar; Markierung `(default: n/a)`.
+- Dynamisch zusammengesetzte Prop-Typen (Intersection / Pick / Omit) nur flach expandieren (erste Ebene); tiefe Normalisierung optional.
+- Interne / nicht-exportierte Symbole werden ignoriert.
+
+### 27.4 Folgeaufgaben
+- Optional TypeDoc-Integration für reichere Beschreibungen.
+- CI Schritt ergänzen, der bei Diff warnt (API Drift Detector).
+- Erstellung CHANGELOG Abschnitt „API Surface Changes“.
+
+## 28. API Drift Monitoring (Konzept)
+| Risiko | Symptom | Lösung |
+|--------|---------|--------|
+| Breaking Change unbemerkt | Build ok, Runtime Fehler bei Nutzung alter Props | Automatisierter Export-Vergleich im CI |
+| Verwilderte interne Utilities | Unbeabsichtigter Export | Filterliste `allowlist` / `denylist` |
+| Entfernte Hooks | Fehlende Release Notes | SemVer + API Diff Report |
+
+### 28.1 CI Pseudokonfiguration
+1. `npm ci`
+2. `npm run extract:api`
+3. Vergleiche `docs/generated/mapcomponents-api.json` mit Vorgänger im Main → Falls abweichend & kein `BREAKING_CHANGE` Tag im Commit: Warnung/Fail.
+
+## 29. Erweiterte Props-Matrix (Platzhalter bis Extraktion abgeschlossen)
+Datei: `docs/generated/mapcomponents-api.md` (automatisch) – wird bei nächster Ausführung gefüllt.
+
+| Komponente | Prop | Typ | Optional | Default | Beschreibung (JSDoc) |
+|------------|------|-----|----------|---------|----------------------|
+| (pending) | | | | | |
+
+## 30. Interner Provider-Kontext (Platzhalter)
+Nach Extraktion ergänzen:
+- Registry Struktur (`MapRegistry: mapId -> { map, createdAt, subscribers[] }`).
+- Event-Bus Mechanik (falls vorhanden).
+- Cleanup Ablauf (Unmount → removeSource/removeLayer / destroy map).
+
+## 31. Performance Audit Aufgabenliste
+| Task | Ziel | Status |
+|------|------|--------|
+| Benchmark 10k Punkte Circle vs. Marker DOM | Renderpfad evaluieren | open |
+| Cluster Repaint Stress Test (Zoom Loop) | Frame-Drops messen | open |
+| Terrain Toggle Memory Snapshot | GPU/CPU Impact quantifizieren | open |
+| Multi-Map Sync Throttle 16ms vs 0ms | Jank sichtbar? | open |
+
+## 32. Security Validation Tasks
+| Task | Ziel | Status |
+|------|------|--------|
+| GeoJSON Property Size Limit Checker | DoS verhindern | open |
+| URL Source Schema Whitelist | Unsichere Protokolle blocken | open |
+| Popup Content Sanitizer Utility | XSS vermeiden | open |
+| CSP Empfehlung (Doc Section) | Hardening | open |
+
+## 33. A11y & i18n Audit Checklist
+| Element | Check | Status |
+|---------|-------|--------|
+| Zoom Control Buttons | `aria-label` vorhanden | open |
+| Geolocate Button | Status Text (tracking on/off) | open |
+| Keyboard Focus Reihenfolge | Tab-Flow logisch | open |
+| Motion Preferences | Animationsdauer reduziert | open |
+| Sprachumschaltung (Basemap Labels) | Style-Language switch test | open |
+
+## 34. Erweiterungs-Template Status
+| Template | Existiert | Nächster Schritt |
+|----------|----------|---------------|
+| Custom Layer | Ja (Code Beispiel) | In Repo / ggf. Upstream PR |
+| Custom Control | Ja (Code Beispiel) | Styling / CSS Klasse dokumentieren |
+| Vector Tile Wrapper | Nein | API Entwurf schreiben |
+| Terrain Wrapper | Nein | DEM Source Options definieren |
+| Marker Layer Abstraktion | Nein | Konfiguration + active-state Pattern |
+
+## 35. Nächste Automationsschritte (Priorisierung)
+1. Script implementieren & erste Ausgabe committen.
+2. CI Integration (GitHub Action) – API Drift.
+3. Ergänzung README Abschnitt „API Extraction“. 
+4. A11y Quick Pass (axe) über Storybook / Demo.
+5. Performance Bench Harness.
+
+---
+Erweiterung 27–35 hinzugefügt (API Automatisierung & Deep-Tech Platzhalter).
