@@ -1,0 +1,46 @@
+/**
+ * protocolTemplate.ts
+ * Boilerplate helper to register a custom data protocol (Proposal #5).
+ * Shows canonical shape, validation & abort support.
+ */
+import { useAddProtocol } from '@mapcomponents/react-maplibre';
+
+export interface ProtocolHandlerOptions {
+  /** Maximum payload size in bytes (approx) before abort */
+  maxBytes?: number;
+  /** Regex allowlist for URL host/path if needed */
+  allowPattern?: RegExp;
+  /** Optional transform pipeline override */
+  transform?: (raw: string, params: URLSearchParams) => Promise<any> | any;
+}
+
+export const createTextProtocolHandler = (opts: ProtocolHandlerOptions = {}) => {
+  const { maxBytes = 5_000_000, allowPattern, transform } = opts;
+  return async function handler(request: any) {
+    const url = request.url as string;
+    // MapLibre passes e.g. csv://... full string
+    const parsed = new URL(url.replace(/^(\w+):\/\//, 'https://')); // temp scheme swap for parsing
+    if (allowPattern && !allowPattern.test(parsed.href)) {
+      throw new Error('Blocked by allowPattern');
+    }
+    const res = await fetch(parsed.href);
+    const blob = await res.blob();
+    if (blob.size > maxBytes) throw new Error('Payload too large');
+    const text = await blob.text();
+    const qs = parsed.searchParams;
+    const out = transform ? await transform(text, qs) : { text };
+    return { data: out };
+  };
+};
+
+export interface UseRegisterProtocolParams {
+  scheme: string; // e.g. 'csv'
+  handler: (request: any) => Promise<{ data: any }>;
+}
+
+export const useRegisterProtocol = ({ scheme, handler }: UseRegisterProtocolParams) => {
+  // Cast for test/mock compatibility; upstream hook accepts { scheme, handler }
+  (useAddProtocol as any)({ scheme, handler });
+};
+
+export default useRegisterProtocol;
