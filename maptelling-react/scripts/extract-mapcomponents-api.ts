@@ -153,6 +153,22 @@ entries.filter(e=>coreComponentNames.includes(e.name) && e.props).forEach(e => {
 });
 fs.writeFileSync(path.join(outDir,'mapcomponents-prop-matrix.md'), matrix, 'utf8');
 
+// Deprecation report
+const deprecatedLines: string[] = [];
+entries.forEach(e => {
+  if (e.deprecated) {
+    deprecatedLines.push(`- Component ${e.name} (deprecated)`);
+  }
+  if (e.props) {
+    e.props.filter(p=>p.deprecated).forEach(p=>{
+      deprecatedLines.push(`- ${e.name}.${p.name} (prop deprecated)`);
+    });
+  }
+});
+if (deprecatedLines.length) {
+  fs.writeFileSync(path.join(outDir,'mapcomponents-deprecations.md'), '# Deprecated API Elements\n\n' + deprecatedLines.join('\n') + '\n','utf8');
+}
+
 // Insert/update summary markers in capabilities doc if present
 const capabilitiesPath = path.resolve(process.cwd(),'../MAPCOMPONENTS_CAPABILITIES.md');
 if (fs.existsSync(capabilitiesPath)) {
