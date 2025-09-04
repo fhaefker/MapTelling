@@ -20,7 +20,6 @@ import { useViewportSync } from '../hooks/useViewportSync';
 import { useFpsSample } from '../hooks/useFpsSample';
 import useHillshadeBackground from '../hooks/useHillshadeBackground';
 import ModeToggle from '../components/ModeToggle';
-import StoryOverlay from '../components/StoryOverlay';
 import NavigationControls from '../components/NavigationControls';
 import StoryScroller from '../components/StoryScroller';
 import { useT } from '../i18n/I18nProvider';
@@ -87,7 +86,6 @@ const MapShell: React.FC<MapShellProps> = (props) => {
         {config.showInset && <Suspense fallback={null}><InsetMap mainMapId="maptelling-map" /></Suspense>}
         <Suspense fallback={null}><StoryScroller currentChapter={currentChapter} disabled={interactive} passThrough={interactive} onEnterChapter={idx => { if (!interactive) goToChapter(idx); }} /></Suspense>
         <Suspense fallback={null}><MarkerLayer mapId="maptelling-map" activeChapterId={chapters[currentChapter].id} /></Suspense>
-        <Suspense fallback={null}><StoryOverlay chapter={chapters[currentChapter]} chapterIndex={currentChapter} totalChapters={total} /></Suspense>
         <Suspense fallback={null}><NavigationControls currentChapter={currentChapter} totalChapters={total} isPlaying={isPlaying} onPrevious={previous} onNext={next} onPlayPause={togglePlay} onChapterSelect={goToChapter} /></Suspense>
         <ProgressBar current={currentChapter} total={total} />
         {debugEnabled && <DebugOverlay fps={fps} />}
