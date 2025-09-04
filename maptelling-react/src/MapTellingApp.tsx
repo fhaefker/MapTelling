@@ -6,6 +6,7 @@ import { MapLibreMap, MlGeoJsonLayer, useMap } from '@mapcomponents/react-maplib
 import { motion } from 'framer-motion';
 import type { FeatureCollection, LineString } from 'geojson';
 import { config } from './config/mapConfig';
+import { fetchWmsCapabilities, chooseOsmLayer } from './utils/wms';
 import { ChaptersProvider, useChapters } from './context/ChaptersContext';
 // Lazy loaded UI/Story components (ST-09)
 const StoryOverlay = lazy(() => import('./components/StoryOverlay'));
@@ -49,27 +50,41 @@ const InnerApp: React.FC = () => {
   // Map load flag
   useEffect(() => { if (mapHook.map) setIsMapLoaded(true); }, [mapHook.map]);
 
-  // Build WMS-only raster style once (exclusive usage) 
+  // Build WMS-only raster style once with dynamic capabilities layer resolution.
   useEffect(() => {
-    const wms = (config as any).wms as { baseUrl: string; version: string; layers: string; format?: string; attribution?: string };
-    const format = wms.format || 'image/png';
-    const tileUrl = `${wms.baseUrl}service=WMS&request=GetMap&version=${wms.version}`+
-      `&layers=${encodeURIComponent(wms.layers)}&styles=&format=${encodeURIComponent(format)}`+
-      `&transparent=false&crs=EPSG:3857&width=256&height=256&bbox={bbox-epsg-3857}&TILED=TRUE`;
-    const rasterStyle = {
-      version: 8,
-      name: 'WhereGroup OSM Demo WMS',
-      sources: {
-        wms: {
-          type: 'raster',
-          tiles: [tileUrl],
-          tileSize: 256,
-          attribution: wms.attribution || '© OSM / WhereGroup'
+    let cancelled = false;
+    const wms = (config as any).wms as { baseUrl: string; version: '1.1.1'|'1.3.0'; layers: string; format?: string; attribution?: string };
+    const preferred = [wms.layers, 'OSM-WMS', 'openstreetmap'];
+    (async () => {
+      let layer = wms.layers;
+      try {
+        // Skip in test env to avoid network
+        if (!(typeof process !== 'undefined' && process.env.JEST_WORKER_ID)) {
+          const caps = await fetchWmsCapabilities(wms.baseUrl, wms.version);
+          if (caps && caps.layers.length) layer = chooseOsmLayer(caps, preferred);
         }
-      },
-      layers: [ { id: 'wms-base', type: 'raster', source: 'wms' } ]
-    } as any;
-    setStyleObject(rasterStyle);
+      } catch { /* ignore */ }
+      if (cancelled) return;
+      const format = wms.format || 'image/png';
+      const tileUrl = `${wms.baseUrl}service=WMS&request=GetMap&version=${wms.version}`+
+        `&layers=${encodeURIComponent(layer)}&styles=&format=${encodeURIComponent(format)}`+
+        `&transparent=false&crs=EPSG:3857&width=256&height=256&bbox={bbox-epsg-3857}&TILED=TRUE`;
+      const rasterStyle = {
+        version: 8,
+        name: 'WhereGroup OSM Demo WMS',
+        sources: {
+          wms: {
+            type: 'raster',
+            tiles: [tileUrl],
+            tileSize: 256,
+            attribution: wms.attribution || '© OSM / WhereGroup'
+          }
+        },
+        layers: [ { id: 'wms-base', type: 'raster', source: 'wms' } ]
+      } as any;
+      setStyleObject(rasterStyle);
+    })();
+    return () => { cancelled = true; };
   }, []);
 
   // Helper to get base url without relying on import.meta (avoids Jest parsing issues)
