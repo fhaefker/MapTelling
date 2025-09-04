@@ -148,7 +148,7 @@ const InnerApp: React.FC = () => {
     />
   </Suspense>
 
-    {/* Mode Toggle (Story vs Free Navigation) */}
+  {/* Mode Toggle repositioned (top-right under terrain button) */}
   <Suspense fallback={null}>
     <ModeToggle isInteractive={interactive} onToggle={toggleInteractive} />
   </Suspense>
