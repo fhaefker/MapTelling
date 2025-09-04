@@ -1,8 +1,11 @@
 .story-overlay {
   position: fixed;
-  top: 30px;
+  /* push below top-left menu buttons (which sit around 8px from top) */
+  top: 72px;
   left: 30px;
   max-width: 400px;
+  max-height: calc(100vh - 90px); /* keep some bottom space */
+  overflow-y: auto;
   background: rgba(0, 0, 0, 0.85);
   backdrop-filter: blur(15px);
   border-radius: 20px;
@@ -11,12 +14,31 @@
   z-index: 1000;
   border: 1px solid rgba(255, 255, 255, 0.2);
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.3) transparent;
+}
+
+.story-overlay::-webkit-scrollbar { width: 8px; }
+.story-overlay::-webkit-scrollbar-track { background: transparent; }
+.story-overlay::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.25); border-radius: 4px; }
+
+/* Ensure any images inside the overlay shrink and don't overflow */
+.story-overlay img, .story-overlay video {
+  max-width: 100%;
+  height: auto;
+  border-radius: 10px;
+  display: block;
 }
 
 .story-content {
   display: flex;
   flex-direction: column;
   gap: 20px;
+}
+
+.story-image {
+  max-height: 45vh; /* keep image from pushing overlay too tall */
+  object-fit: cover;
 }
 
 .chapter-indicator {
@@ -51,10 +73,11 @@
 /* Mobile Responsiveness */
 @media (max-width: 768px) {
   .story-overlay {
-    top: 20px;
+    top: 80px; /* still leave space for menu */
     left: 20px;
     right: 20px;
     max-width: none;
+    max-height: calc(100vh - 100px);
     padding: 25px;
   }
   
@@ -74,11 +97,12 @@
 
 @media (max-width: 480px) {
   .story-overlay {
-    top: 15px;
+    top: 85px; /* mobile safe spacing */
     left: 15px;
     right: 15px;
     padding: 20px;
     border-radius: 15px;
+    max-height: calc(100vh - 110px);
   }
   
   .story-title {

@@ -1,14 +1,11 @@
 import React, { useState, useRef } from 'react';
-import StoryCreator from './StoryCreator';
-import StoryEditor from './StoryEditor';
 import { resetStoredChapters } from '../context/ChaptersContext';
 import { useChapters } from '../context/ChaptersContext';
 
 // Unified story tools menu (bottom-left)
 const StoryMenu: React.FC = () => {
   const [open, setOpen] = useState<boolean>(false);
-  const [creatorOpen, setCreatorOpen] = useState<boolean>(false);
-  const [editorOpen, setEditorOpen] = useState<boolean>(false);
+  // Creation / editing panels removed to avoid overlapping white forms
   const [importInfo, setImportInfo] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement|null>(null);
   const chaptersCtx = useChapters();
@@ -44,7 +41,7 @@ const StoryMenu: React.FC = () => {
   };
 
   return (
-    <div style={{ position:'fixed', left:8, bottom:8, zIndex:40, fontSize:12, fontFamily:'system-ui, sans-serif' }}>
+  <div style={{ position:'fixed', left:8, top:8, zIndex:40, fontSize:12, fontFamily:'system-ui, sans-serif' }}>
       {/* Main toggle button */}
       <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
         <button
@@ -53,14 +50,6 @@ const StoryMenu: React.FC = () => {
         >{open ? 'Menü schließen' : 'Story Menü'}</button>
         {open && (
           <>
-            <button
-              onClick={()=>setCreatorOpen(o=>!o)}
-              style={{ padding:'6px 10px', borderRadius:4, background: creatorOpen? '#3FB1CE':'#3FB1CE', color:'#fff', border:'none', cursor:'pointer' }}
-            >{creatorOpen ? 'Neu (–)' : 'Neues Kapitel'}</button>
-            <button
-              onClick={()=>setEditorOpen(o=>!o)}
-              style={{ padding:'6px 10px', borderRadius:4, background: editorOpen? '#8a4fff':'#8a4fff', color:'#fff', border:'none', cursor:'pointer' }}
-            >{editorOpen ? 'Editor (–)' : 'Kapitel Editor'}</button>
             <button
               onClick={()=>{ resetStoredChapters(); localStorage.removeItem('maptelling.chapters.overrides'); window.location.reload(); }}
               style={{ padding:'6px 10px', borderRadius:4, background:'#555', color:'#fff', border:'none', cursor:'pointer' }}
@@ -77,12 +66,6 @@ const StoryMenu: React.FC = () => {
           </>
         )}
       </div>
-      {open && (
-        <div style={{ marginTop:8, display:'flex', gap:12 }}>
-          {creatorOpen && <StoryCreator embedded open={creatorOpen} onToggleOpen={setCreatorOpen} />}
-          {editorOpen && <StoryEditor floating={false} />}
-        </div>
-      )}
       {importInfo && open && (
         <div style={{ marginTop:6, background:'rgba(0,0,0,0.35)', padding:'4px 8px', borderRadius:4, color:'#fff', fontSize:11 }}>{importInfo}</div>
       )}
