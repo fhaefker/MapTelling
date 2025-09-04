@@ -610,3 +610,131 @@ CI: Node version test matrix (badge present). Suggest adding API surface diff jo
 
 ---
 Diese erweiterten Abschnitte (36–50) liefern eine vollständige interne Sicht, um zukünftige Entwicklungsaufgaben (Feature-Erweiterung, Debugging, Performance-Tuning, Upstream-Contribution) ohne erneute externe Recherche durchzuführen.
+
+## 51. Vollständige Hook-Referenz (Detail)
+| Hook | Kategorie | Signatur (vereinfacht) | Kern-Parameter | Rückgabe | Zweck / Hinweise |
+|------|-----------|------------------------|----------------|----------|------------------|
+| useMap | Core | `useMap({mapId?, waitForLayer?})` | `mapId`, optional `waitForLayer` (layerId) | `{ map, mapIsReady, componentId, layers, cleanup }` | Greift auf MapLibreGlWrapper zu; verzögert Bereitstellung bis optionaler Layer existiert. |
+| useMapState | Core | `useMapState({ mapId, watch, filter })` | watch: `{layers?,viewport?,sources?}`; filter: `{includeBaseLayers?,matchLayerIds?,matchSourceIds?}` | `{ layers, viewport }` | Subscribtions auf wrapper Events `layerchange` & `viewportchange`. |
+| useLayer | Layer | `useLayer(options)` | `mapId`, `layerId?`, `options:{ id,type,paint,layout,source,filter,insertBeforeLayer }`, handlers | void | Registriert Layer + Events, tracked per componentId. |
+| useSource | Layer | `useSource({mapId, sourceId, source})` | GeoJSON / vector / raster source object | void | Fügt Source hinzu, tracked & cleanup. |
+| useLayerEvent | Events | `useLayerEvent({mapId, layerId, event, handler})` | MapLibre native events | void | Komfort für einzelne Layer-Events. |
+| useLayerFilter | Utility | `useLayerFilter({mapId, layerId, filter})` | MapLibre style filter array | void | Setzt/aktualisiert Filter deklarativ. |
+| useLayerHoverPopup | UX | `useLayerHoverPopup({mapId, layerId, render, ...opts})` | Render-Funktion, debounce | void | Baut Hover-Popup über Feature. |
+| useCameraFollowPath | Camera | `useCameraFollowPath({ mapId, geojson, speed?, loop? })` | Pfadgeometrie | Controller-Objekt | Animiert Kamera entlang Pfad. |
+| useExportMap | Export | `useExportMap({ mapId, format?, quality? })` | `format: 'png'|'jpeg'` | `()=>Promise<Blob>` | Snapshot-Export unter Einhaltung Canvas-Richtlinien. |
+| useGpx | Data | `useGpx({ url|text, fetchOptions? })` | Remote oder inline GPX | `{ geojson, loading, error }` | GPX→GeoJSON Pipeline. |
+| useWms | Data | `useWms({ baseUrl, params })` | OGC WMS Parameter | `{ getUrl(layer, bbox, size) }` | Hilft bei dynamischen Tile-Requests. |
+| useFilterData | Temporal | `useFilterData({ data, timeExtent })` | Zeitintervall | Gefilterte Daten | Für TemporalController. |
+| useFeatureEditor | Editing | `useFeatureEditor({ mapId, layerId, mode })` | Editiermodus | Controller (commit, cancel) | Feature-Manipulation. |
+| useAddProtocol | Protocol | `useAddProtocol({ scheme, handler })` | Schema-Name | void | Registriert custom Protokoll (csv:// etc.). |
+| useAddImage | Assets | `useAddImage({ mapId, id, image, options })` | Image/Meta | void | Fügt Sprites/Bilder hinzu. |
+| useAddImage (multiple) | Assets | Variation akzeptiert Array | Array | void | Bulk-Image Registrierung. |
+| useLayerContext | Internal | `useLayerContext()` | - | Layer-spezifische Kontextwerte | Wird von High-Level UI genutzt. |
+
+## 52. Protokoll-Handler Integration (Schritt-für-Schritt)
+1. Hook verwenden: `useAddProtocol({ scheme: 'csv', handler: CSVProtocolHandler })` innerhalb Provider-Hierarchie.
+2. Resources laden via Style/Source URL: `url: 'csv://path/to/file.csv?delimiter=;`.
+3. Handler erhält `RequestParameters` (MapLibre) → extrahiert Filename & Optionen.
+4. Konvertierung: Parser (`csv2geojson`, OSM, TopoJSON, XML) liefert `FeatureCollection`.
+5. Rückgabe Objekt `{ data: FeatureCollection }` → MapLibre erstellt Source.
+Validation & Security: Nur Whitelisted Schemata registrieren; Dateigrößenlimit implementieren (z.B. Abbruch > 10MB) vor Konvertierung.
+
+## 53. Wrapper Event-Referenz
+| Event | Quelle | Auslöser | Payload/Context | Nutzung |
+|-------|--------|----------|-----------------|---------|
+| `layerchange` | wrapper | Layer add/remove/style refresh | internal state snapshot diff | UI Layer Trees, Dirty-Checks |
+| `viewportchange` | wrapper | `move` Ereignisse (throttled) | `{center,zoom,bearing,pitch}` | Kamera-Sync, Overview Map |
+| `addsource` | wrapper | Source Registrierung | `{ source_id }` | Debug / Logging |
+| `addlayer` | wrapper | Layer Registrierung | `{ layer_id }` | On-demand Layer init side-effects |
+Unterschied zu nativen MapLibre Events: wrapper Events abstrahieren Zustand, schließen Cleanup-Integration ein und feuern nur bei sinnvollem Diff.
+
+## 54. Redux MapStore Nutzungsbeispiel
+Minimaler Zugriff:
+```ts
+import { MapStore } from '@mapcomponents/react-maplibre';
+const { store, setLayerInMapConfig } = MapStore;
+store.dispatch(setLayerInMapConfig({ mapConfigKey: 'main', layer: myLayerConfig }));
+```
+Beispiel LayerConfig (GeoJSON):
+```ts
+const layerConfig = {
+  type: 'geojson',
+  uuid: 'route-A',
+  config: { geojson: myData, options: { paint: { 'line-color': '#f00' } } }
+};
+```
+Ordnung anpassen: `updateLayerOrder({ mapConfigKey:'main', newOrder:[{ uuid:'route-A'}] })`.
+Caveat: Sichtbarkeitskaskade über `masterVisible` kann Layer unabhängig von deren individuellen Flags ausblenden.
+
+## 55. Theming & Style Switching
+Ansatz:
+1. Eigene Theme-Extension: `const theme = getTheme('light'); const custom = { ...theme, palette:{ ...theme.palette, primary:{ main:'#0af'} } };`
+2. Zusätzlichen MUI ThemeProvider außerhalb oder innerhalb von `MapComponentsProvider` verschachteln (innere Provider überschreiben tiefer liegende Variablen selektiv).
+3. Basemap Switch: Zustand `currentStyle` halten, per select Menü `mapRef.map.setStyle(nextStyle)` (MapLibreMap macht das bereits bei Änderung von `options.style`).
+4. Für Nutzerfreundlichkeit Stil-Presets importieren (`MonokaiStyle`, etc.) oder remote Style JSON vorladen → als Objekt setzen (verhindert Doppelladen).
+
+## 56. Performance-Instrumentierung
+Messpunkte:
+- Initial Load: Zeit bis erstes `load` Event (Performance.now() bei Start vs onReady Callback).
+- Layer Mutation: Zeit für Batch (N) paint/layout Updates → wrapper queue Option (zukünftig) vs Einzelaufrufe.
+- FPS Tracking: `requestAnimationFrame` Delta Mittelwert während animierter Kamerafahrten.
+Praktische Hooks:
+```ts
+useEffect(()=>{ const t0=performance.now(); const off=map.wrapper.on('layerchange',()=>{console.log('Layer changed after',performance.now()-t0,'ms');}); return ()=>off; },[]);
+```
+Optimierungs-Checkliste: stabile Referenzen (`useMemo` für GeoJSON), keine unnötigen Style-Wechsel, Clustering für >10k Punkte, Circle Layer statt DOM Marker.
+
+## 57. Deprecation & Migration
+Aktiv bekannte Deprecations: `MlGeoJsonLayer` Props `paint`, `layout` (ersetzt durch `options.paint`, `options.layout`).
+Migration Schritt:
+1. Suche: `paint:` → transformiere zu `options: { ...(options||{}), paint: <expr> }`.
+2. Entferne alte Prop.
+3. Wiederhole für `layout`.
+Codemod Skizze (js-codemod): AST Suche nach JSXAttribute `name=paint|layout` in Element `MlGeoJsonLayer`.
+Release Policy Empfehlung: Markieren im CHANGELOG unter "Deprecated" & nach >=1 Minor bump entfernen.
+
+## 58. Lokale Entwicklung (Library Upstream)
+Klonen & Build:
+```
+git clone https://github.com/mapcomponents/react-map-components-maplibre
+cd react-map-components-maplibre
+yarn
+yarn build
+yarn start  # Storybook
+```
+Verknüpfen in Projekt:
+```
+yarn link
+cd ../MapTelling/maptelling-react
+yarn link @mapcomponents/react-maplibre
+yarn dev
+```
+Bei Änderungen: in Library `yarn build` erneut, Vite HMR aktualisiert App. Alternativ `yarn build --watch` falls vorhanden.
+
+## 59. Security Hardening (Daten & Protokolle)
+| Risiko | Angriffsvektor | Gegenmaßnahme |
+|--------|----------------|---------------|
+| Malicious CSV/OSM | Formatinjektion, Riesendatei | Max Bytes Limit + Timeout + Schema Validierung |
+| XSS in Properties | Popup Rendering unsanitized | Escape HTML / dangerouslySetInnerHTML vermeiden |
+| External Style Injection | Remote JSON manipuliert Layer | Hash-Pinning / Own CDN Deployment |
+| DoS via Many Layers | Mass addLayer Schleife | Throttle + Diff vor Add |
+| Over-permissive Protocols | Register beliebiger scheme:// | Allowlist erzwingen |
+
+## 60. Versions- & Upgrade-Checkliste
+| Bereich | Aktuelle Annahme | Check vor Upgrade |
+|---------|------------------|------------------|
+| React | ^19.x | Breaking Hook API? Concurrent features? |
+| MapLibre GL | 5.x | Style Spec Änderungen, Terrain API Diff |
+| Node | >=16 (Template) | CI Matrix anpassen (18/20 LTS) |
+| TypeScript | ^5.9 (lib) vs ^5.4 (app) | Angleichen für bessere Types / Satisfies |
+| MUI | ^7.x | Theme API Änderungen prüfen |
+| Redux Toolkit | ^2.6 | Action/Immer Änderungen |
+Upgrade Flow:
+1. Abhängigkeit isoliert bumpen.
+2. `yarn test` & Storybook visuelle Prüfung.
+3. API Extraction laufen lassen (Hash vergleichen) – dokumentiere Drift.
+4. Performance Smoke (Layer add/remove Loop) & Basic Map Interaction.
+
+---
+Abschnitte 51–60 schließen verbleibende Lücken (Hooks komplett, Protokolle, Events, Store Nutzung, Theming, Performance, Migration, Security, Upgrade) um zukünftige Arbeit ohne erneute Analyse des Upstream Repos zu ermöglichen.
