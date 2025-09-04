@@ -21,3 +21,7 @@
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# generated documentation artifacts (API extraction)
+docs/generated/mapcomponents-api.json
+docs/generated/mapcomponents-api.md

@@ -17,11 +17,14 @@
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.3.4",
-    "vite": "^5.4.8"
+  "vite": "^5.4.8",
+  "ts-morph": "^22.0.0",
+  "ts-node": "^10.9.2"
   },
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "extract:api": "ts-node -P tsconfig.scripts.json ./scripts/extract-mapcomponents-api.ts"
   }
 }
