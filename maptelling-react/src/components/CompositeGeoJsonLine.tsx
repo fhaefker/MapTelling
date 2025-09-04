@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { hashFeatureCollection } from '../utils/hashFeatureCollection';
 import { useMap } from '@mapcomponents/react-maplibre';
 import type { FeatureCollection, LineString, MultiLineString } from 'geojson';
 
@@ -77,20 +78,7 @@ export const CompositeGeoJsonLine = ({
       } else if (updates === 'diff') {
         // Basic diff: build signature of feature ids + geometry lengths; if unchanged skip setData
         try {
-          const sig = (() => {
-            const feats = geojson.features || [];
-            let acc = '' + feats.length + '|';
-            for (let i = 0; i < feats.length; i++) {
-              const f: any = feats[i];
-              const id = f.id ?? i;
-              const coords = (f.geometry && (f.geometry as any).coordinates) || [];
-              // Rough geometry length metric (nested depth safe)
-              const len = Array.isArray(coords) ? JSON.stringify(coords).length : 0;
-              acc += id + ':' + len + ';';
-              if (acc.length > 5000) break; // guard huge strings
-            }
-            return acc;
-          })();
+          const sig = hashFeatureCollection(geojson as any);
           if (lastFeatureSigRef.current !== sig) {
             lastFeatureSigRef.current = sig;
             (m.getSource(sourceId) as any).setData(geojson as any);
