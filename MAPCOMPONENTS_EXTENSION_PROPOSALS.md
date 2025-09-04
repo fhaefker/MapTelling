@@ -188,6 +188,7 @@ Cross-Link Index:
 - RFC 04: `upstream/RFC_04_ProtocolTemplate.md`
 - RFC 05: `upstream/RFC_05_DeprecationCompat.md`
 - RFC 06 (optional): `upstream/RFC_06_DevMetricsOverlay.md`
+ - RFC 07 (planned): `upstream/RFC_07_MlTerrain.md`
 
 See `CHANGELOG.md` for aggregated release draft.
 
