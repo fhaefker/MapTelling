@@ -24,18 +24,33 @@ jest.mock('@mapcomponents/react-maplibre', () => {
 	};
 	const mockMap = {
 		map: {
-			flyTo: jest.fn(),
-			jumpTo: jest.fn(),
-			getCenter: () => ({ lng: 0, lat: 0 }),
-			getZoom: () => 5,
-			getBearing: () => 0,
-			getPitch: () => 0,
+			_debug: {
+				sources: { wms: { type: 'raster' } },
+				layers: { 'wms-base': { id: 'wms-base', type: 'raster', layout: { visibility: 'visible' }, paint: {} } },
+				terrain: null as any,
+				layoutChanges: [] as any[],
+				paintChanges: [] as any[],
+				camera: { center: [0,0] as [number, number], zoom: 5, bearing: 0, pitch: 0 },
+			},
+			flyTo: jest.fn().mockImplementation((opts: any) => { if (opts?.center) (mockMap.map as any)._debug.camera.center = opts.center; if (opts?.zoom!=null) (mockMap.map as any)._debug.camera.zoom = opts.zoom; if (opts?.bearing!=null) (mockMap.map as any)._debug.camera.bearing = opts.bearing; if (opts?.pitch!=null) (mockMap.map as any)._debug.camera.pitch = opts.pitch; }),
+			jumpTo: jest.fn().mockImplementation((opts: any) => { if (opts?.center) (mockMap.map as any)._debug.camera.center = opts.center; if (opts?.zoom!=null) (mockMap.map as any)._debug.camera.zoom = opts.zoom; if (opts?.bearing!=null) (mockMap.map as any)._debug.camera.bearing = opts.bearing; if (opts?.pitch!=null) (mockMap.map as any)._debug.camera.pitch = opts.pitch; }),
+			getCenter: () => { const c = (mockMap.map as any)._debug.camera.center; return { lng: c[0], lat: c[1] }; },
+			getZoom: () => (mockMap.map as any)._debug.camera.zoom,
+			getBearing: () => (mockMap.map as any)._debug.camera.bearing,
+			getPitch: () => (mockMap.map as any)._debug.camera.pitch,
 			loaded: () => true,
 			once: (e: string, cb: Function) => { cb(); },
 			on: (e: string, cb: Function) => on(e, cb),
 			off: (e: string, cb: Function) => off(e, cb),
-			// style placeholder
-			getStyle: () => ({ layers: [] })
+			getStyle: () => ({ layers: Object.values((mockMap.map as any)._debug.layers) }),
+			setStyle: (style: any) => { /* naive assignment for tests */ if (style?.layers) { (mockMap.map as any)._debug.layers = {}; style.layers.forEach((l:any)=>{ (mockMap.map as any)._debug.layers[l.id] = { ...l, layout: l.layout || { visibility: 'visible' }, paint: l.paint || {} }; }); } if (style?.sources) { Object.keys(style.sources).forEach(k=>{ (mockMap.map as any)._debug.sources[k]=style.sources[k]; }); } },
+			addSource: (id: string, src: any) => { (mockMap.map as any)._debug.sources[id] = src; fire('sourcedata', { sourceId: id }); },
+			getSource: (id: string) => (mockMap.map as any)._debug.sources[id],
+			addLayer: (layer: any, beforeId?: string) => { (mockMap.map as any)._debug.layers[layer.id] = { ...layer, layout: layer.layout || { visibility: 'visible' }, paint: layer.paint || {} }; fire('layeradded', { id: layer.id, before: beforeId }); },
+			getLayer: (id: string) => (mockMap.map as any)._debug.layers[id],
+			setLayoutProperty: (id: string, prop: string, value: any) => { const lyr = (mockMap.map as any)._debug.layers[id]; if (lyr) { lyr.layout = lyr.layout || {}; lyr.layout[prop] = value; (mockMap.map as any)._debug.layoutChanges.push({ id, prop, value }); } },
+			setPaintProperty: (id: string, prop: string, value: any) => { const lyr = (mockMap.map as any)._debug.layers[id]; if (lyr) { lyr.paint = lyr.paint || {}; lyr.paint[prop] = value; (mockMap.map as any)._debug.paintChanges.push({ id, prop, value }); } },
+			setTerrain: (opts: any) => { (mockMap.map as any)._debug.terrain = opts; },
 		},
 		on,
 		off,
@@ -61,7 +76,7 @@ jest.mock('@mapcomponents/react-maplibre', () => {
 			};
 			return {
 				MapComponentsProvider: ({ children }: any) => React.createElement(ctx.Provider, { value: { map: mockMap } }, children),
-				MapLibreMap: () => null,
+				MapLibreMap: (props: any) => { if (props?.options?.style) { try { (mockMap.map as any).setStyle(props.options.style); } catch {} } return null; },
 				MlGeoJsonLayer,
 				useMap: () => ({ map: mockMap }),
 				useAddProtocol,

@@ -8,6 +8,7 @@ import MapShell from './layout/MapShell';
 
 const MapTellingApp: React.FC = () => {
   const [interactive, setInteractive] = useState(false);
+  // Remember last story chapter index camera restore handled by chapter hook itself; we only need to avoid triggering chapter apply when enabling free mode.
   const [terrainEnabled, setTerrainEnabled] = useState(false);
   const [terrainExag, setTerrainExag] = useState(config.terrain?.exaggeration || 1.4);
   const [transitionSpeed, setTransitionSpeed] = useState(0.9);
@@ -18,7 +19,9 @@ const MapTellingApp: React.FC = () => {
       <ChaptersProvider chapters={config.chapters}>
         <MapShell
           interactive={interactive}
-            onToggleInteractive={() => setInteractive(p=>!p)}
+            onToggleInteractive={() => {
+              setInteractive(p => !p);
+            }}
             terrainEnabled={terrainEnabled}
             toggleTerrain={() => setTerrainEnabled(t=>!t)}
             terrainExag={terrainExag}

@@ -17,7 +17,7 @@ const UnifiedControls: React.FC<UnifiedControlsProps> = ({ interactive, onToggle
   return (
     <div style={{ position:'fixed', top:8, right:8, zIndex:50, display:'flex', flexDirection:'column', alignItems:'flex-end', gap:8 }}>
       <div style={{ display:'flex', gap:8 }}>
-        <button onClick={onToggleInteractive} style={{ padding:'8px 14px', borderRadius:20, border:'1px solid #888', background: interactive ? '#222' : '#3FB1CE', color:'#fff', cursor:'pointer', fontSize:13, minWidth:150 }}>{interactive ? 'Story Modus' : 'Freie Navigation'}</button>
+  <button onClick={onToggleInteractive} style={{ padding:'8px 14px', borderRadius:20, border:'1px solid #888', background: interactive ? '#3FB1CE' : '#222', color:'#fff', cursor:'pointer', fontSize:13, minWidth:150 }}>{interactive ? 'Freie Navigation' : 'Story Modus'}</button>
         <button onClick={()=>setOpen(o=>!o)} style={{ padding:'8px 14px', borderRadius:20, border:'1px solid #888', background:'#444', color:'#fff', cursor:'pointer', fontSize:13 }}>{open ? 'Schließen' : 'DEM & Optionen'}</button>
       </div>
       {open && (

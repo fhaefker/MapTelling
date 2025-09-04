@@ -23,11 +23,12 @@ export const useHillshadeBackground = ({ map, enabled, exaggeration }: UseHillsh
   const safePaintApi = typeof m.setPaintProperty === 'function';
 
     const apply = () => {
+      const haveSource = m.getSource && m.getSource('terrain-dem');
+      if (haveSource && safeLayerApis && !m.getLayer(hillshadeId) && typeof m.addLayer === 'function') {
+        try { m.addLayer({ id: hillshadeId, type: 'hillshade', source: 'terrain-dem', paint: { 'hillshade-exaggeration': exaggeration } }, wmsLayerId); } catch {/* ignore */}
+      }
       if (enabled) {
-        if (m.getSource && m.getSource('terrain-dem') && safeLayerApis) {
-          if (!m.getLayer(hillshadeId) && typeof m.addLayer === 'function') {
-            try { m.addLayer({ id: hillshadeId, type: 'hillshade', source: 'terrain-dem', paint: { 'hillshade-exaggeration': exaggeration } }, wmsLayerId); } catch {/* ignore */}
-          }
+        if (haveSource && safeLayerApis) {
           try {
             if (m.getLayer(wmsLayerId)) m.setLayoutProperty(wmsLayerId, 'visibility', 'none');
             if (m.getLayer(hillshadeId)) m.setLayoutProperty(hillshadeId, 'visibility', 'visible');

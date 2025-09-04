@@ -82,7 +82,7 @@ const MapShell: React.FC<MapShellProps> = (props) => {
             zoom: startChapter.location.zoom,
             bearing: startChapter.location.bearing || 0,
             pitch: startChapter.location.pitch || 0,
-            interactive,
+            interactive: true,
             attributionControl: false,
           }}
           style={{ width: '100%', height: '100vh', paddingLeft: !interactive ? leftPad : 0, transition:'padding-left 300ms ease' }}
