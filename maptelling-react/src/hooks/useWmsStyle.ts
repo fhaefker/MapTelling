@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { config } from '../config/mapConfig';
 import { fetchWmsCapabilities, chooseOsmLayer } from '../utils/wms';
 
@@ -15,17 +15,21 @@ interface WmsStyleResult {
 export const useWmsStyle = (): WmsStyleResult => {
   const [styleObject, setStyleObject] = useState<any | null>(null);
   const [wmsLayerName, setWmsLayerName] = useState<string | null>(null);
+  const lastStyleKeyRef = useRef<string>('');
+  const buildCountRef = useRef(0);
 
   useEffect(() => {
     let cancelled = false;
     const wms = (config as any).wms as { baseUrl: string; version: '1.1.1'|'1.3.0'; layers: string; format?: string; attribution?: string };
-  const preferred = [wms.layers, 'osm', 'osm_auto:all', 'OSM-WMS', 'openstreetmap'];
+    const preferred = [wms.layers, 'OSM-WMS', 'openstreetmap'];
 
     const buildStyle = (layer: string) => {
       const format = wms.format || 'image/png';
       const tileUrl = `${wms.baseUrl}service=WMS&request=GetMap&version=${wms.version}`+
         `&layers=${encodeURIComponent(layer)}&styles=&format=${encodeURIComponent(format)}`+
-        `&transparent=false&CRS=EPSG:3857&width=256&height=256&bbox={bbox-epsg-3857}&TILED=TRUE`;
+        `&transparent=false&crs=EPSG:3857&width=256&height=256&bbox={bbox-epsg-3857}&TILED=TRUE`;
+      const key = tileUrl;
+      if (lastStyleKeyRef.current === key) return; // prevent unnecessary state churn
       const rasterStyle = {
         version: 8,
         name: 'WhereGroup OSM Demo WMS',
@@ -37,16 +41,18 @@ export const useWmsStyle = (): WmsStyleResult => {
           { id: 'wms-base', type: 'raster', source: 'wms' }
         ]
       } as any;
-      // Avoid unnecessary re-renders if layer unchanged and style already built
-  setStyleObject((prev: any) => {
-        if (prev && wmsLayerName === layer) return prev;
-        return rasterStyle;
-      });
-      setWmsLayerName(current => current === layer ? current : layer);
+      setStyleObject(rasterStyle);
+      setWmsLayerName(layer);
+      lastStyleKeyRef.current = key;
+      buildCountRef.current++;
+      if (buildCountRef.current > 5) {
+        // excessive rebuilds indicate loop; log once
+        if (buildCountRef.current === 6) console.warn('[useWmsStyle] excessive style rebuilds detected; throttling');
+      }
     };
 
-  // Immediate style to avoid white flash
-  if (!wmsLayerName) buildStyle(wms.layers);
+    // Immediate style to avoid white flash
+    buildStyle(wms.layers);
 
     // Optional refinement via capabilities (skip in tests to keep deterministic)
     (async () => {
@@ -57,6 +63,9 @@ export const useWmsStyle = (): WmsStyleResult => {
         if (caps && caps.layers.length) {
           const chosen = chooseOsmLayer(caps, preferred);
             if (chosen && chosen !== wmsLayerName) buildStyle(chosen);
+          if (!caps.layers.includes(wms.layers)) {
+            console.warn('[useWmsStyle] configured layer not present in capabilities:', wms.layers);
+          }
         }
       } catch {/* ignore network issues */}
     })();

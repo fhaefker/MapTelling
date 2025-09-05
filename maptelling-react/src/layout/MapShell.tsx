@@ -56,7 +56,6 @@ const MapShell: React.FC<MapShellProps> = (props) => {
   // Access primary map instance for hillshade hook
   const mapHook = useMap({ mapId: 'maptelling-map' });
   useHillshadeBackground({ map: mapHook.map, enabled: terrainEnabled, exaggeration: terrainExag });
-  useEffect(()=>{ if(mapHook.map?.map){ (window as any).MAPTELLING_PRIMARY_MAP = mapHook.map; } }, [mapHook.map]);
   const [leftPad, setLeftPad] = useState(420);
   useEffect(()=>{
     const calc = () => {
@@ -72,6 +71,15 @@ const MapShell: React.FC<MapShellProps> = (props) => {
     window.addEventListener('resize', calc);
     return () => window.removeEventListener('resize', calc);
   }, []);
+  // Fallback raster tiles (public OSM tile server) if WMS not loading
+  const fallbackRaster = {
+    version: 8,
+    sources: { 'osm-fallback': { type:'raster', tiles:['https://tile.openstreetmap.org/{z}/{x}/{y}.png'], tileSize:256, attribution:'© OSM contributors' }},
+    layers: [ { id:'background', type:'background', paint:{'background-color':'#fff'} }, { id:'osm-fallback', type:'raster', source:'osm-fallback' } ]
+  } as any;
+
+  const effectiveStyle = styleObject || (wmsLayerName ? config.style : fallbackRaster);
+
   return (
     <MapErrorBoundary>
       <div className="map-telling-app" id="story-main" role="main" aria-label="Story">
@@ -79,7 +87,7 @@ const MapShell: React.FC<MapShellProps> = (props) => {
         <MapLibreMap
           mapId="maptelling-map"
           options={{
-            style: styleObject || config.style,
+            style: effectiveStyle,
             center: startChapter.location.center,
             zoom: startChapter.location.zoom,
             bearing: startChapter.location.bearing || 0,
