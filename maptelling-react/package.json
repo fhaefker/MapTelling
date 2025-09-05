@@ -38,6 +38,7 @@
   "test": "jest",
   "lint:unused": "ts-node -P tsconfig.scripts.json ./scripts/find-unused.ts",
   "analyze": "vite build && node ./scripts/report-bundle-size.cjs",
-  "build:size": "node ./scripts/report-bundle-size.cjs"
+  "build:size": "node ./scripts/report-bundle-size.cjs",
+  "api:hash": "node scripts/apiHash.js"
   }
 }
