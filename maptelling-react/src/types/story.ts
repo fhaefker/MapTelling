@@ -23,13 +23,4 @@ export interface MapConfig {
   chapters: Chapter[];
   trackData?: FeatureCollection<LineString>;
   showInset?: boolean;
-  terrain?: {
-    enabled?: boolean;
-    tiles?: string[];
-    url?: string;
-    tileSize?: 256 | 512;
-    exaggeration?: number;
-  encoding?: 'terrarium' | 'mapbox';
-  hideBase?: boolean; // if true hide wms-base when terrain enabled
-  };
 }

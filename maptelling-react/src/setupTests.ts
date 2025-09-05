@@ -27,7 +27,6 @@ jest.mock('@mapcomponents/react-maplibre', () => {
 			_debug: {
 				sources: { wms: { type: 'raster' } },
 				layers: { 'wms-base': { id: 'wms-base', type: 'raster', layout: { visibility: 'visible' }, paint: {} } },
-				terrain: null as any,
 				layoutChanges: [] as any[],
 				paintChanges: [] as any[],
 				camera: { center: [0,0] as [number, number], zoom: 5, bearing: 0, pitch: 0 },
@@ -62,7 +61,7 @@ jest.mock('@mapcomponents/react-maplibre', () => {
 			getLayer: (id: string) => (mockMap.map as any)._debug.layers[id],
 			setLayoutProperty: (id: string, prop: string, value: any) => { const lyr = (mockMap.map as any)._debug.layers[id]; if (lyr) { lyr.layout = lyr.layout || {}; lyr.layout[prop] = value; (mockMap.map as any)._debug.layoutChanges.push({ id, prop, value }); } },
 			setPaintProperty: (id: string, prop: string, value: any) => { const lyr = (mockMap.map as any)._debug.layers[id]; if (lyr) { lyr.paint = lyr.paint || {}; lyr.paint[prop] = value; (mockMap.map as any)._debug.paintChanges.push({ id, prop, value }); } },
-			setTerrain: (opts: any) => { (mockMap.map as any)._debug.terrain = opts; },
+			setTerrain: (_opts: any) => { /* terrain removed */ },
 		},
 		on,
 		off,

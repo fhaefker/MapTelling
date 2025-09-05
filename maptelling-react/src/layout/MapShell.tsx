@@ -6,7 +6,6 @@ import useWmsStyle from '../hooks/useWmsStyle';
 import useTrackData from '../hooks/useTrackData';
 import GeoJsonLine from '../components/GeoJsonLine';
 import InsetMap from '../components/InsetMap';
-import MlTerrain from '../components/MlTerrain';
 import InteractionController from '../components/InteractionController';
 import WmsOverlay from '../components/WmsOverlay';
 import ProgressBar from '../components/ProgressBar';
@@ -18,7 +17,6 @@ import StoryMenu from '../components/StoryMenu';
 import { useChapterNavigation } from '../hooks/useChapterNavigation';
 import { useViewportSync } from '../hooks/useViewportSync';
 import { useFpsSample } from '../hooks/useFpsSample';
-import useHillshadeBackground from '../hooks/useHillshadeBackground';
 import UnifiedControls from '../components/UnifiedControls';
 import NavigationControls from '../components/NavigationControls';
 import StoryScroller from '../components/StoryScroller';
@@ -29,10 +27,6 @@ import MapErrorBoundary from '../components/MapErrorBoundary';
 export interface MapShellProps {
   interactive: boolean;
   onToggleInteractive(): void;
-  terrainEnabled: boolean;
-  toggleTerrain(): void;
-  terrainExag: number;
-  setTerrainExag(v: number): void;
   transitionSpeed: number;
   setTransitionSpeed(v: number): void;
   showPerf: boolean;
@@ -42,7 +36,7 @@ export interface MapShellProps {
 }
 
 const MapShell: React.FC<MapShellProps> = (props) => {
-  const { interactive, onToggleInteractive, terrainEnabled, toggleTerrain, terrainExag, setTerrainExag, transitionSpeed, setTransitionSpeed, showPerf, togglePerf, wmsCacheEnabled, setWmsCacheEnabled } = props;
+  const { interactive, onToggleInteractive, transitionSpeed, setTransitionSpeed, showPerf, togglePerf, wmsCacheEnabled, setWmsCacheEnabled } = props;
   const { chapters, total } = useChapters();
   const startChapter = chapters[0];
   const { styleObject, wmsLayerName } = useWmsStyle();
@@ -55,9 +49,9 @@ const MapShell: React.FC<MapShellProps> = (props) => {
   const debugEnabled = typeof window !== 'undefined' && window.location.search.includes('debug');
   const { fps } = useFpsSample({ enabled: debugEnabled });
   const t = useT();
-  // Access primary map instance for hillshade hook
+  // Access primary map instance
   const mapHook = useMap({ mapId: 'maptelling-map' });
-  useHillshadeBackground({ map: mapHook.map, enabled: terrainEnabled, exaggeration: terrainExag });
+  // (DEM removed)
 
   // Live pointer tracking for marker capture crosshair
   useEffect(()=>{
@@ -80,27 +74,12 @@ const MapShell: React.FC<MapShellProps> = (props) => {
     window.addEventListener('mousemove', handleMove);
     return ()=> window.removeEventListener('mousemove', handleMove);
   }, [markerCapture, mapHook.map]);
-  // Hide WMS raster when terrain enabled (simulate pure DEM background)
-  const [hillshadeReady, setHillshadeReady] = useState(false);
+  // Ensure base layer stays visible
   useEffect(()=>{
     const m:any = mapHook.map?.map; if(!m) return;
-    const check=()=>{
-      const ready = !!(m.getLayer && m.getLayer('dem-hillshade'));
-      setHillshadeReady(ready);
-      // Hide wms only when hillshade layer exists to avoid white flash
-      if(m.getLayer && m.setLayoutProperty && m.getLayer('wms-base')){
-        try { m.setLayoutProperty('wms-base','visibility', (terrainEnabled && ready) ? 'none':'visible'); } catch {}
-      }
-      if(m.getLayer && m.getLayer('dem-hillshade')){
-        try { m.setLayoutProperty('dem-hillshade','visibility', terrainEnabled ? 'visible':'none'); } catch {}
-      }
-    };
-    const onLayer = (e:any)=>{ if(e?.id==='dem-hillshade') check(); };
-    const onSource = ()=>{ check(); };
-    if(m.on){ m.on('layeradded', onLayer); m.on('sourcedata', onSource); }
-    if(m.loaded()) check(); else m.once('load', check);
-    return ()=>{ if(m.off){ m.off('layeradded', onLayer); m.off('sourcedata', onSource); } };
-  }, [mapHook.map, terrainEnabled]);
+    const ensure=()=>{ if(m.getLayer && m.setLayoutProperty && m.getLayer('wms-base')){ try { m.setLayoutProperty('wms-base','visibility','visible'); } catch {} } };
+    if(m.loaded()) ensure(); else m.once('load', ensure);
+  }, [mapHook.map]);
   const [leftPad, setLeftPad] = useState(420);
   useEffect(()=>{
     const calc = () => {
@@ -145,16 +124,10 @@ const MapShell: React.FC<MapShellProps> = (props) => {
           style={{ width: '100%', height: '100vh', paddingLeft: !interactive ? leftPad : 0, transition:'padding-left 300ms ease' }}
         />
         <Suspense fallback={null}><InteractionController mapId="maptelling-map" enabled={interactive} /></Suspense>
-        <Suspense fallback={null}>{config.terrain?.tiles && (
-          <MlTerrain mapId="maptelling-map" enabled={terrainEnabled} exaggeration={terrainExag} url={config.terrain?.url as any} tiles={config.terrain?.tiles as any} tileSize={config.terrain?.tileSize as any} encoding={'terrarium' as any} />
-        )}</Suspense>
+  {/* terrain component removed */}
         <Suspense fallback={null}><UnifiedControls
           interactive={interactive}
           onToggleInteractive={onToggleInteractive}
-          terrainEnabled={terrainEnabled}
-          toggleTerrain={toggleTerrain}
-          terrainExag={terrainExag}
-          setTerrainExag={setTerrainExag}
         /></Suspense>
         {trackData && (
           <Suspense fallback={null}>
@@ -189,12 +162,7 @@ const MapShell: React.FC<MapShellProps> = (props) => {
             </div>
           </>
         )}
-        {terrainEnabled && !config.terrain?.tiles && (
-          <div style={{ position:'fixed', top:40, left:8, background:'rgba(0,0,0,0.55)', color:'#fff', padding:'4px 8px', fontSize:11, borderRadius:4 }}>Terrain (Pitch) Fallback aktiv – keine DEM Tiles konfiguriert</div>
-        )}
-        {terrainEnabled && config.terrain?.tiles && !hillshadeReady && (
-          <div style={{ position:'fixed', top:40, left:8, background:'rgba(0,0,0,0.55)', color:'#fff', padding:'4px 8px', fontSize:11, borderRadius:4 }}>Lade DEM…</div>
-        )}
+  {/* terrain status overlays removed */}
         <Suspense fallback={null}><WmsOverlay mapId="maptelling-map" layer={wmsLayerName} attribution={(config as any).wms?.attribution} baseUrl={(config as any).wms?.baseUrl} cacheEnabled={wmsCacheEnabled} /></Suspense>
       </div>
     </MapErrorBoundary>
