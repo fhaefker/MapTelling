@@ -14,6 +14,7 @@ interface ChaptersContextValue {
   exportChapters(): Chapter[]; // full current chapters (base+extras, overrides applied)
   importChapters(data: Chapter[]): { imported: number; overrides: number; extras: number }; // merge incoming
   baseIds(): string[]; // ids of initial base chapters
+  moveChapter(id: string, dir: -1 | 1): void; // reorder chapter position
 }
 
 const ChaptersContext = createContext<ChaptersContextValue | undefined>(undefined);
@@ -156,6 +157,18 @@ export const ChaptersProvider: React.FC<{ chapters: Chapter[]; children: React.R
     return { imported: incoming.length, overrides: Object.keys(overrides).length, extras: extras.length };
   }, []);
   const baseIds = useCallback(() => baseRef.current.map(b => b.id), []);
+  const moveChapter = useCallback((id: string, dir: -1 | 1) => {
+    setChapters(prev => {
+      const idx = prev.findIndex(c => c.id === id);
+      if (idx === -1) return prev;
+      const target = idx + dir;
+      if (target < 0 || target >= prev.length) return prev;
+      const clone = [...prev];
+      const [item] = clone.splice(idx,1);
+      clone.splice(target,0,item);
+      return clone;
+    });
+  }, []);
 
   const value = useMemo<ChaptersContextValue>(() => ({
     chapters,
@@ -168,8 +181,9 @@ export const ChaptersProvider: React.FC<{ chapters: Chapter[]; children: React.R
     getOriginal,
     exportChapters,
     importChapters,
-    baseIds
-  }), [chapters, addChapter, updateChapter, removeChapter, resetChapter, getOriginal, exportChapters, importChapters, baseIds]);
+    baseIds,
+    moveChapter
+  }), [chapters, addChapter, updateChapter, removeChapter, resetChapter, getOriginal, exportChapters, importChapters, baseIds, moveChapter]);
   return <ChaptersContext.Provider value={value}>{children}</ChaptersContext.Provider>;
 };
 export const resetStoredChapters = () => { if (typeof window !== 'undefined') { window.localStorage.removeItem(LS_KEY); } };

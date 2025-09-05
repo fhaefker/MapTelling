@@ -32,8 +32,8 @@ jest.mock('@mapcomponents/react-maplibre', () => {
 				paintChanges: [] as any[],
 				camera: { center: [0,0] as [number, number], zoom: 5, bearing: 0, pitch: 0 },
 			},
-			flyTo: jest.fn().mockImplementation((opts: any) => { if (opts?.center) (mockMap.map as any)._debug.camera.center = opts.center; if (opts?.zoom!=null) (mockMap.map as any)._debug.camera.zoom = opts.zoom; if (opts?.bearing!=null) (mockMap.map as any)._debug.camera.bearing = opts.bearing; if (opts?.pitch!=null) (mockMap.map as any)._debug.camera.pitch = opts.pitch; }),
-			jumpTo: jest.fn().mockImplementation((opts: any) => { if (opts?.center) (mockMap.map as any)._debug.camera.center = opts.center; if (opts?.zoom!=null) (mockMap.map as any)._debug.camera.zoom = opts.zoom; if (opts?.bearing!=null) (mockMap.map as any)._debug.camera.bearing = opts.bearing; if (opts?.pitch!=null) (mockMap.map as any)._debug.camera.pitch = opts.pitch; }),
+			flyTo: jest.fn().mockImplementation((opts: any) => { if (opts?.center) (mockMap.map as any)._debug.camera.center = opts.center; if (opts?.zoom!=null) (mockMap.map as any)._debug.camera.zoom = opts.zoom; if (opts?.bearing!=null) (mockMap.map as any)._debug.camera.bearing = opts.bearing; if (opts?.pitch!=null) (mockMap.map as any)._debug.camera.pitch = opts.pitch; fire('viewportchange', { type:'flyTo', opts }); }),
+			jumpTo: jest.fn().mockImplementation((opts: any) => { if (opts?.center) (mockMap.map as any)._debug.camera.center = opts.center; if (opts?.zoom!=null) (mockMap.map as any)._debug.camera.zoom = opts.zoom; if (opts?.bearing!=null) (mockMap.map as any)._debug.camera.bearing = opts.bearing; if (opts?.pitch!=null) (mockMap.map as any)._debug.camera.pitch = opts.pitch; fire('viewportchange', { type:'jumpTo', opts }); }),
 			getCenter: () => { const c = (mockMap.map as any)._debug.camera.center; return { lng: c[0], lat: c[1] }; },
 			getZoom: () => (mockMap.map as any)._debug.camera.zoom,
 			getBearing: () => (mockMap.map as any)._debug.camera.bearing,
@@ -43,7 +43,19 @@ jest.mock('@mapcomponents/react-maplibre', () => {
 			on: (e: string, cb: Function) => on(e, cb),
 			off: (e: string, cb: Function) => off(e, cb),
 			getStyle: () => ({ layers: Object.values((mockMap.map as any)._debug.layers) }),
-			setStyle: (style: any) => { /* naive assignment for tests */ if (style?.layers) { (mockMap.map as any)._debug.layers = {}; style.layers.forEach((l:any)=>{ (mockMap.map as any)._debug.layers[l.id] = { ...l, layout: l.layout || { visibility: 'visible' }, paint: l.paint || {} }; }); } if (style?.sources) { Object.keys(style.sources).forEach(k=>{ (mockMap.map as any)._debug.sources[k]=style.sources[k]; }); } },
+			setStyle: (style: any) => { /* merge assignment for tests */
+				if (process.env.JEST_WORKER_ID) {
+					// eslint-disable-next-line no-console
+					console.log('[mockMap.setStyle] invoked');
+				}
+				if (style?.layers) {
+					const existing = (mockMap.map as any)._debug.layers;
+					style.layers.forEach((l:any)=>{ existing[l.id] = { ...existing[l.id], ...l, layout: l.layout || existing[l.id]?.layout || { visibility: 'visible' }, paint: { ...(existing[l.id]?.paint||{}), ...(l.paint||{}) } }; });
+				}
+				if (style?.sources) {
+					Object.keys(style.sources).forEach(k=>{ (mockMap.map as any)._debug.sources[k]=style.sources[k]; });
+				}
+			},
 			addSource: (id: string, src: any) => { (mockMap.map as any)._debug.sources[id] = src; fire('sourcedata', { sourceId: id }); },
 			getSource: (id: string) => (mockMap.map as any)._debug.sources[id],
 			addLayer: (layer: any, beforeId?: string) => { (mockMap.map as any)._debug.layers[layer.id] = { ...layer, layout: layer.layout || { visibility: 'visible' }, paint: layer.paint || {} }; fire('layeradded', { id: layer.id, before: beforeId }); },
@@ -58,6 +70,7 @@ jest.mock('@mapcomponents/react-maplibre', () => {
 	};
 	;(global as any).__TEST_MAP_WRAPPER__ = mockMap; // expose for tests
 	const ctx = React.createContext({ map: mockMap });
+	let lastAppliedStyle: any = null;
 		const protocolRegistry: Record<string, Function> = {};
 		const useAddProtocol = (opts: { scheme: string; handler: any }) => {
 			protocolRegistry[opts.scheme] = opts.handler;
@@ -76,7 +89,7 @@ jest.mock('@mapcomponents/react-maplibre', () => {
 			};
 			return {
 				MapComponentsProvider: ({ children }: any) => React.createElement(ctx.Provider, { value: { map: mockMap } }, children),
-				MapLibreMap: (props: any) => { if (props?.options?.style) { try { (mockMap.map as any).setStyle(props.options.style); } catch {} } return null; },
+				MapLibreMap: (props: any) => { if (props?.options?.style && props.options.style !== lastAppliedStyle) { try { (mockMap.map as any).setStyle(props.options.style); lastAppliedStyle = props.options.style; } catch {} } return null; },
 				MlGeoJsonLayer,
 				useMap: () => ({ map: mockMap }),
 				useAddProtocol,

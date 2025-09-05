@@ -61,8 +61,8 @@ export const useWmsStyle = (): WmsStyleResult => {
     // expose for selector
     (buildStyleRef as any).current = build;
 
-    // Immediate style to avoid white flash
-  build(wms.layers);
+  // Immediate style to avoid white flash (only once on initial mount)
+  if (!wmsLayerName) build(wms.layers);
 
     // Optional refinement via capabilities (skip in tests to keep deterministic)
     (async () => {

@@ -57,17 +57,25 @@ const MapShell: React.FC<MapShellProps> = (props) => {
   const mapHook = useMap({ mapId: 'maptelling-map' });
   useHillshadeBackground({ map: mapHook.map, enabled: terrainEnabled, exaggeration: terrainExag });
   // Hide WMS raster when terrain enabled (simulate pure DEM background)
+  const [hillshadeReady, setHillshadeReady] = useState(false);
   useEffect(()=>{
-    const m:any = mapHook.map?.map;
-    if(!m) return;
-    const apply=()=>{
-      try {
-        if(m.getLayer && m.setLayoutProperty){
-          if(m.getLayer('wms-base')) m.setLayoutProperty('wms-base','visibility', terrainEnabled ? 'none':'visible');
-        }
-      } catch {}
+    const m:any = mapHook.map?.map; if(!m) return;
+    const check=()=>{
+      const ready = !!(m.getLayer && m.getLayer('dem-hillshade'));
+      setHillshadeReady(ready);
+      // Hide wms only when hillshade layer exists to avoid white flash
+      if(m.getLayer && m.setLayoutProperty && m.getLayer('wms-base')){
+        try { m.setLayoutProperty('wms-base','visibility', (terrainEnabled && ready) ? 'none':'visible'); } catch {}
+      }
+      if(m.getLayer && m.getLayer('dem-hillshade')){
+        try { m.setLayoutProperty('dem-hillshade','visibility', terrainEnabled ? 'visible':'none'); } catch {}
+      }
     };
-    if(m.loaded()) apply(); else m.once('load', apply);
+    const onLayer = (e:any)=>{ if(e?.id==='dem-hillshade') check(); };
+    const onSource = ()=>{ check(); };
+    if(m.on){ m.on('layeradded', onLayer); m.on('sourcedata', onSource); }
+    if(m.loaded()) check(); else m.once('load', check);
+    return ()=>{ if(m.off){ m.off('layeradded', onLayer); m.off('sourcedata', onSource); } };
   }, [mapHook.map, terrainEnabled]);
   const [leftPad, setLeftPad] = useState(420);
   useEffect(()=>{
@@ -140,6 +148,9 @@ const MapShell: React.FC<MapShellProps> = (props) => {
   <Suspense fallback={null}><StoryMenu creatorOpen={creatorOpen} toggleCreator={()=>setCreatorOpen(o=>!o)} /></Suspense>
         {terrainEnabled && !config.terrain?.tiles && (
           <div style={{ position:'fixed', top:40, left:8, background:'rgba(0,0,0,0.55)', color:'#fff', padding:'4px 8px', fontSize:11, borderRadius:4 }}>Terrain (Pitch) Fallback aktiv – keine DEM Tiles konfiguriert</div>
+        )}
+        {terrainEnabled && config.terrain?.tiles && !hillshadeReady && (
+          <div style={{ position:'fixed', top:40, left:8, background:'rgba(0,0,0,0.55)', color:'#fff', padding:'4px 8px', fontSize:11, borderRadius:4 }}>Lade DEM…</div>
         )}
         <Suspense fallback={null}><WmsOverlay mapId="maptelling-map" layer={wmsLayerName} attribution={(config as any).wms?.attribution} baseUrl={(config as any).wms?.baseUrl} cacheEnabled={wmsCacheEnabled} /></Suspense>
       </div>

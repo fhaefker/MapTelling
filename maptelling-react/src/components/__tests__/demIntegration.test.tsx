@@ -6,13 +6,17 @@ import MapTellingApp from '../../MapTellingApp';
 // Relies on enhanced map mock in setupTests exposing _debug.
 
 describe('DEM integration', () => {
-  test('enabling DEM adds terrain-dem source, hillshade layer and hides wms-base', () => {
+  test('enabling DEM adds terrain-dem source, hillshade layer and hides wms-base', async () => {
     const { getByText, getByLabelText } = render(<MapTellingApp />);
     // Open panel
     fireEvent.click(getByText(/DEM & Optionen/));
     const checkbox = getByLabelText(/DEM aktivieren/);
     fireEvent.click(checkbox);
     const testMapWrapper: any = (global as any).__TEST_MAP_WRAPPER__;
+    await waitFor(()=>{
+      const dbgWait = testMapWrapper.map._debug;
+      expect(dbgWait.layers['dem-hillshade']).toBeTruthy();
+    });
     const dbg = testMapWrapper.map._debug;
     // Source present
     expect(dbg.sources['terrain-dem']).toBeTruthy();

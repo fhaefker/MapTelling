@@ -22,10 +22,19 @@ export const useHillshadeBackground = ({ map, enabled, exaggeration }: UseHillsh
     const safeLayerApis = typeof m.getLayer === 'function' && typeof m.setLayoutProperty === 'function';
   const safePaintApi = typeof m.setPaintProperty === 'function';
 
-    const apply = () => {
+  const apply = () => {
       const haveSource = m.getSource && m.getSource('terrain-dem');
+      if (process.env.JEST_WORKER_ID) {
+        // Diagnostic logging for test debugging
+        // eslint-disable-next-line no-console
+        console.log('[useHillshadeBackground] apply() enabled=%s haveSource=%s hasHillshade=%s', enabled, !!haveSource, !!(m.getLayer && m.getLayer(hillshadeId)));
+      }
       if (haveSource && safeLayerApis && !m.getLayer(hillshadeId) && typeof m.addLayer === 'function') {
-        try { m.addLayer({ id: hillshadeId, type: 'hillshade', source: 'terrain-dem', paint: { 'hillshade-exaggeration': exaggeration } }, wmsLayerId); } catch {/* ignore */}
+        if (process.env.JEST_WORKER_ID) {
+          // eslint-disable-next-line no-console
+          console.log('[useHillshadeBackground] adding hillshade layer');
+        }
+        try { m.addLayer({ id: hillshadeId, type: 'hillshade', source: 'terrain-dem', paint: { 'hillshade-exaggeration': exaggeration }, layout:{ visibility: enabled ? 'visible':'none' } }); } catch {/* ignore */}
       }
       if (enabled) {
         if (haveSource && safeLayerApis) {
@@ -38,6 +47,10 @@ export const useHillshadeBackground = ({ map, enabled, exaggeration }: UseHillsh
           } catch {/* ignore */}
         } else if (typeof m.on === 'function') {
           const onData = () => {
+            if (process.env.JEST_WORKER_ID) {
+              // eslint-disable-next-line no-console
+              console.log('[useHillshadeBackground] sourcedata event haveSource=%s', !!(m.getSource && m.getSource('terrain-dem')));
+            }
             if (m.getSource && m.getSource('terrain-dem')) { apply(); m.off && m.off('sourcedata', onData); }
           };
           m.on('sourcedata', onData);
@@ -51,6 +64,20 @@ export const useHillshadeBackground = ({ map, enabled, exaggeration }: UseHillsh
       }
     };
     const cleanup = apply();
+    // If source not yet there, poll a few times (lightweight) then stop.
+    if(!m.getSource('terrain-dem') && enabled){
+      let attempts = 0;
+      const iv = setInterval(()=>{
+        attempts++;
+        if (process.env.JEST_WORKER_ID) {
+          // eslint-disable-next-line no-console
+          console.log('[useHillshadeBackground] poll attempt %s haveSource=%s', attempts, !!m.getSource('terrain-dem'));
+        }
+        if(m.getSource('terrain-dem')) { apply(); clearInterval(iv); }
+        if(attempts>20) clearInterval(iv);
+      }, 250);
+      return () => { clearInterval(iv); typeof cleanup === 'function' && cleanup(); };
+    }
     return () => { typeof cleanup === 'function' && cleanup(); };
   }, [map, enabled, exaggeration]);
 };
