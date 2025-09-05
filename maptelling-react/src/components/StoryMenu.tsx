@@ -10,10 +10,11 @@ import importProject from '../utils/importProject';
 interface StoryMenuProps {
   creatorOpen: boolean;
   toggleCreator: () => void;
+  onMarkerCaptureChange?: (active: boolean) => void;
 }
 
 // Unified story tools menu (bottom-left)
-const StoryMenu: React.FC<StoryMenuProps> = ({ creatorOpen, toggleCreator }) => {
+const StoryMenu: React.FC<StoryMenuProps> = ({ creatorOpen, toggleCreator, onMarkerCaptureChange }) => {
   const [open, setOpen] = useState<boolean>(false);
   const [panel, setPanel] = useState<'none'|'edit'>('none');
   const [importInfo, setImportInfo] = useState<string>('');
@@ -27,6 +28,8 @@ const StoryMenu: React.FC<StoryMenuProps> = ({ creatorOpen, toggleCreator }) => 
   const [editingId, setEditingId] = useState<string|null>(null);
   const [draft, setDraft] = useState<{ title: string; description: string; alignment: string; image?: string; marker?: string; _loc?: any }|null>(null);
   const [captureMode, setCaptureMode] = useState<'none'|'marker'>('none');
+  React.useEffect(()=>{ onMarkerCaptureChange && onMarkerCaptureChange(captureMode==='marker'); }, [captureMode, onMarkerCaptureChange]);
+  const [showCrosshair, setShowCrosshair] = useState(true);
 
   const handleExport = () => {
     try {
@@ -115,6 +118,8 @@ const StoryMenu: React.FC<StoryMenuProps> = ({ creatorOpen, toggleCreator }) => 
         }
       };
       m.on && m.on('click', handler);
+  const esc = (ev:KeyboardEvent) => { if (ev.key === 'Escape') { setCaptureMode('none'); } };
+  window.addEventListener('keydown', esc);
       return ()=>{ m.off && m.off('click', handler); };
     }
   }, [map, captureMode]);
@@ -215,9 +220,17 @@ const StoryMenu: React.FC<StoryMenuProps> = ({ creatorOpen, toggleCreator }) => 
           <label style={{ display:'block', marginBottom:8 }}>Marker (lng,lat)
             <input value={draft.marker||''} onChange={e=>setDraft(d=> d? { ...d, marker:e.target.value }:d)} placeholder="-5.12,56.99" style={{ width:'100%', padding:4, borderRadius:4, border:'1px solid #444', background:'#111', color:'#fff' }} />
           </label>
-          <div style={{ display:'flex', gap:8, marginBottom:8 }}>
-            <button onClick={()=>setCaptureMode(c=> c==='marker'?'none':'marker')} style={{ flex:1, padding:'6px 8px', borderRadius:4, background: captureMode==='marker' ? '#ff6b6b':'#444', color:'#fff', border:'none', cursor:'pointer' }}>{captureMode==='marker' ? 'Marker: Klick auf Karte…' : 'Marker von Karte'}</button>
-            {draft._loc && <span style={{ flex:1, fontSize:10, lineHeight:1.3, background:'#222', padding:'6px 8px', borderRadius:4 }}><strong>View:</strong><br />{draft._loc.center[0].toFixed(3)},{draft._loc.center[1].toFixed(3)} z{draft._loc.zoom.toFixed(2)}</span>}
+          <div style={{ display:'flex', flexDirection:'column', gap:6, marginBottom:8 }}>
+            <div style={{ display:'flex', gap:8 }}>
+              <button onClick={()=>setCaptureMode(c=> c==='marker'?'none':'marker')} style={{ flex:1, padding:'6px 8px', borderRadius:4, background: captureMode==='marker' ? '#ff6b6b':'#444', color:'#fff', border:'none', cursor:'pointer' }}>{captureMode==='marker' ? 'Marker: Klick… (Esc)' : 'Marker von Karte'}</button>
+              <button disabled={!draft.marker} onClick={()=>setDraft(d=> d? { ...d, marker: undefined }:d)} style={{ padding:'6px 8px', borderRadius:4, background: draft.marker ? '#e63946':'#555', color:'#fff', border:'none', cursor: draft.marker?'pointer':'default' }}>X</button>
+            </div>
+            <div style={{ display:'flex', gap:8 }}>
+              <label style={{ display:'flex', alignItems:'center', gap:4, fontSize:11, background:'#222', padding:'4px 6px', borderRadius:4 }}>
+                <input type="checkbox" checked={showCrosshair} onChange={e=>setShowCrosshair(e.target.checked)} /> Crosshair
+              </label>
+              {draft._loc && <span style={{ flex:1, fontSize:10, lineHeight:1.3, background:'#222', padding:'6px 8px', borderRadius:4 }}><strong>View:</strong><br />{draft._loc.center[0].toFixed(3)},{draft._loc.center[1].toFixed(3)} z{draft._loc.zoom.toFixed(2)}</span>}
+            </div>
           </div>
           <div style={{ display:'flex', justifyContent:'space-between', gap:8 }}>
             {editingId && <button onClick={()=>{ chaptersCtx.resetChapter(editingId); setPanel('none'); }} style={{ flex:1, padding:'6px 8px', borderRadius:4, background:'#777', color:'#fff', border:'none', cursor:'pointer' }}>Reset</button>}

@@ -48,6 +48,8 @@ const MapShell: React.FC<MapShellProps> = (props) => {
   const { styleObject, wmsLayerName } = useWmsStyle();
   const { trackData, trackError } = useTrackData();
   const [creatorOpen, setCreatorOpen] = useState(false);
+  const [markerCapture, setMarkerCapture] = useState(false);
+  const [pointer, setPointer] = useState<{ x:number; y:number; lng:number; lat:number }|null>(null);
   const { currentChapter, isPlaying, goToChapter, next, previous, togglePlay } = useChapterNavigation({ mapId: 'maptelling-map', chapters, offsetPxLeft: !interactive ? 180 : 0 });
   useViewportSync({ sourceMapId: 'maptelling-map', targetMapId: 'inset-map', shouldSync: () => !interactive });
   const debugEnabled = typeof window !== 'undefined' && window.location.search.includes('debug');
@@ -56,6 +58,28 @@ const MapShell: React.FC<MapShellProps> = (props) => {
   // Access primary map instance for hillshade hook
   const mapHook = useMap({ mapId: 'maptelling-map' });
   useHillshadeBackground({ map: mapHook.map, enabled: terrainEnabled, exaggeration: terrainExag });
+
+  // Live pointer tracking for marker capture crosshair
+  useEffect(()=>{
+    if(!markerCapture) { setPointer(null); return; }
+    const m:any = mapHook.map?.map;
+    const handleMove = (e:MouseEvent) => {
+      if(!m || typeof m.unproject !== 'function') return;
+      try {
+        const rect = (document.getElementById('story-main') || document.body).getBoundingClientRect();
+        const x = e.clientX;
+        const y = e.clientY;
+        const lngLat = m.unproject([x - rect.left, y - rect.top]);
+        if(lngLat && typeof lngLat.lng === 'number' && typeof lngLat.lat === 'number') {
+          setPointer({ x, y, lng: lngLat.lng, lat: lngLat.lat });
+        } else {
+          setPointer(p=> p ? { ...p, x, y } : null);
+        }
+      } catch {/* ignore */}
+    };
+    window.addEventListener('mousemove', handleMove);
+    return ()=> window.removeEventListener('mousemove', handleMove);
+  }, [markerCapture, mapHook.map]);
   // Hide WMS raster when terrain enabled (simulate pure DEM background)
   const [hillshadeReady, setHillshadeReady] = useState(false);
   useEffect(()=>{
@@ -138,14 +162,32 @@ const MapShell: React.FC<MapShellProps> = (props) => {
         )}
         {trackError && <div style={{ position:'absolute', top:40, right:8, background:'#ff6b6b', color:'#fff', padding:'4px 8px', borderRadius:4, zIndex:5 }}>{trackError}</div>}
         {config.showInset && <Suspense fallback={null}><InsetMap mainMapId="maptelling-map" /></Suspense>}
-  <Suspense fallback={null}><StoryScroller creatorOpen={creatorOpen} onToggleCreator={()=>setCreatorOpen(o=>!o)} currentChapter={currentChapter} disabled={interactive} passThrough={interactive} onEnterChapter={idx => { if (!interactive) goToChapter(idx); }} /></Suspense>
+  <Suspense fallback={null}><StoryScroller creatorOpen={creatorOpen} onToggleCreator={()=>setCreatorOpen(o=>!o)} currentChapter={currentChapter} disabled={interactive} passThrough={interactive || markerCapture} onEnterChapter={idx => { if (!interactive && !markerCapture) goToChapter(idx); }} /></Suspense>
         <Suspense fallback={null}><MarkerLayer mapId="maptelling-map" activeChapterId={chapters[currentChapter].id} /></Suspense>
         <Suspense fallback={null}><NavigationControls currentChapter={currentChapter} totalChapters={total} isPlaying={isPlaying} onPrevious={previous} onNext={next} onPlayPause={togglePlay} onChapterSelect={goToChapter} /></Suspense>
         <ProgressBar current={currentChapter} total={total} />
   {debugEnabled && <DebugOverlay fps={fps} />}
   {debugEnabled && <ViewportMetricsOverlay mapId="maptelling-map" />}
         {interactive && <FreeNavHint />}
-  <Suspense fallback={null}><StoryMenu creatorOpen={creatorOpen} toggleCreator={()=>setCreatorOpen(o=>!o)} /></Suspense>
+  <Suspense fallback={null}><StoryMenu creatorOpen={creatorOpen} toggleCreator={()=>setCreatorOpen(o=>!o)} onMarkerCaptureChange={setMarkerCapture} /></Suspense>
+        {markerCapture && (
+          <>
+            <div style={{ position:'fixed', top:70, left:8, background:'rgba(255,99,71,0.9)', color:'#fff', padding:'6px 10px', borderRadius:6, fontSize:12, zIndex:60, boxShadow:'0 2px 8px rgba(0,0,0,0.3)' }}>Klick auf die Karte um Marker zu setzen… (Esc zum Abbrechen)</div>
+            {/* Crosshair overlay */}
+            <div style={{ position:'fixed', inset:0, zIndex:59, pointerEvents:'none', cursor:'crosshair' }}>
+              {pointer && (
+                <>
+                  <div style={{ position:'absolute', top:0, left: pointer.x, width:1, height:'100%', background:'rgba(255,255,255,0.35)', transform:'translateX(-0.5px)' }} />
+                  <div style={{ position:'absolute', left:0, top: pointer.y, height:1, width:'100%', background:'rgba(255,255,255,0.35)', transform:'translateY(-0.5px)' }} />
+                  <div style={{ position:'absolute', top: pointer.y -6, left: pointer.x -6, width:12, height:12, borderRadius:'50%', border:'2px solid rgba(255,255,255,0.8)', boxSizing:'border-box', background:'rgba(255,255,255,0.15)' }} />
+                  <div style={{ position:'absolute', top: pointer.y + 10, left: pointer.x + 10, background:'rgba(0,0,0,0.65)', color:'#fff', padding:'2px 6px', borderRadius:4, fontSize:11, whiteSpace:'nowrap', transform:'translateY(0)' }}>
+                    {pointer.lng.toFixed(5)}, {pointer.lat.toFixed(5)}
+                  </div>
+                </>
+              )}
+            </div>
+          </>
+        )}
         {terrainEnabled && !config.terrain?.tiles && (
           <div style={{ position:'fixed', top:40, left:8, background:'rgba(0,0,0,0.55)', color:'#fff', padding:'4px 8px', fontSize:11, borderRadius:4 }}>Terrain (Pitch) Fallback aktiv – keine DEM Tiles konfiguriert</div>
         )}

@@ -24,16 +24,9 @@ export const useHillshadeBackground = ({ map, enabled, exaggeration }: UseHillsh
 
   const apply = () => {
       const haveSource = m.getSource && m.getSource('terrain-dem');
-      if (process.env.JEST_WORKER_ID) {
-        // Diagnostic logging for test debugging
-        // eslint-disable-next-line no-console
-        console.log('[useHillshadeBackground] apply() enabled=%s haveSource=%s hasHillshade=%s', enabled, !!haveSource, !!(m.getLayer && m.getLayer(hillshadeId)));
-      }
+  // (debug logging removed for production cleanliness)
       if (haveSource && safeLayerApis && !m.getLayer(hillshadeId) && typeof m.addLayer === 'function') {
-        if (process.env.JEST_WORKER_ID) {
-          // eslint-disable-next-line no-console
-          console.log('[useHillshadeBackground] adding hillshade layer');
-        }
+  // (debug logging removed)
         try { m.addLayer({ id: hillshadeId, type: 'hillshade', source: 'terrain-dem', paint: { 'hillshade-exaggeration': exaggeration }, layout:{ visibility: enabled ? 'visible':'none' } }); } catch {/* ignore */}
       }
       if (enabled) {
@@ -47,10 +40,7 @@ export const useHillshadeBackground = ({ map, enabled, exaggeration }: UseHillsh
           } catch {/* ignore */}
         } else if (typeof m.on === 'function') {
           const onData = () => {
-            if (process.env.JEST_WORKER_ID) {
-              // eslint-disable-next-line no-console
-              console.log('[useHillshadeBackground] sourcedata event haveSource=%s', !!(m.getSource && m.getSource('terrain-dem')));
-            }
+            // (debug logging removed)
             if (m.getSource && m.getSource('terrain-dem')) { apply(); m.off && m.off('sourcedata', onData); }
           };
           m.on('sourcedata', onData);
@@ -69,10 +59,7 @@ export const useHillshadeBackground = ({ map, enabled, exaggeration }: UseHillsh
       let attempts = 0;
       const iv = setInterval(()=>{
         attempts++;
-        if (process.env.JEST_WORKER_ID) {
-          // eslint-disable-next-line no-console
-          console.log('[useHillshadeBackground] poll attempt %s haveSource=%s', attempts, !!m.getSource('terrain-dem'));
-        }
+  // (debug logging removed)
         if(m.getSource('terrain-dem')) { apply(); clearInterval(iv); }
         if(attempts>20) clearInterval(iv);
       }, 250);
