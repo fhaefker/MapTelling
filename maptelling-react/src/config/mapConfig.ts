@@ -99,13 +99,12 @@ export const config: WmsOnlyMapConfig = {
   showInset: true,
   terrain: {
     enabled: true,
-    // MapLibre demo terrain RGB tiles (no key required). Encoding mapbox RGB.
-    // Source: https://demotiles.maplibre.org/
+    // AWS Terrarium PNG tiles (public). Provides elevations in RGB encoded Terrarium scheme.
     tiles: [
-      'https://demotiles.maplibre.org/terrain-tiles/{z}/{x}/{y}.png'
+      'https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png'
     ],
     tileSize: 256,
     exaggeration: 1.4,
-    encoding: 'mapbox',
+    encoding: 'terrarium',
   },
 };

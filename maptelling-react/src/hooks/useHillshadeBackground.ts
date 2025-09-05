@@ -19,7 +19,7 @@ export const useHillshadeBackground = ({ map, enabled, exaggeration }: UseHillsh
     if (!config.terrain?.tiles) return; // no real DEM configured
   const wmsLayerId = 'wms-base';
   const hillshadeId = 'dem-hillshade';
-  // Always add a hillshade layer for visual DEM feedback (even for mapbox encoding) so user sees relief immediately.
+  // Always add a hillshade layer for visual DEM feedback. For Terrarium encoding this provides shaded relief.
     const safeLayerApis = typeof m.getLayer === 'function' && typeof m.setLayoutProperty === 'function';
   const safePaintApi = typeof m.setPaintProperty === 'function';
 
