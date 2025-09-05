@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import useWmsStyle from '../hooks/useWmsStyle';
 
 interface UnifiedControlsProps {
   interactive: boolean;
@@ -8,14 +7,11 @@ interface UnifiedControlsProps {
   toggleTerrain: () => void;
   terrainExag: number;
   setTerrainExag: (v:number)=>void;
-  transitionSpeed: number;
-  setTransitionSpeed: (v:number)=>void;
 }
 
 // Single compact floating control panel (top-right) merging previous ModeToggle + SettingsPanel DEM section.
-const UnifiedControls: React.FC<UnifiedControlsProps> = ({ interactive, onToggleInteractive, terrainEnabled, toggleTerrain, terrainExag, setTerrainExag, transitionSpeed, setTransitionSpeed }) => {
+const UnifiedControls: React.FC<UnifiedControlsProps> = ({ interactive, onToggleInteractive, terrainEnabled, toggleTerrain, terrainExag, setTerrainExag }) => {
   const [open, setOpen] = useState(false);
-  const { availableLayers, wmsLayerName, selectLayer, loading } = useWmsStyle();
   return (
     <div style={{ position:'fixed', top:8, right:8, zIndex:50, display:'flex', flexDirection:'column', alignItems:'flex-end', gap:8 }}>
       <div style={{ display:'flex', gap:8 }}>
@@ -32,22 +28,13 @@ const UnifiedControls: React.FC<UnifiedControlsProps> = ({ interactive, onToggle
               <label style={{ display:'block', marginBottom:10 }}>Überhöhung: {terrainExag.toFixed(2)}
                 <input type="range" min={0.5} max={3} step={0.1} value={terrainExag} onChange={e=>setTerrainExag(parseFloat(e.target.value))} style={{ width:'100%' }} />
               </label>
-              <label style={{ display:'block', marginBottom:10 }}>Transition Speed: {transitionSpeed.toFixed(2)}
-                <input type="range" min={0.2} max={2} step={0.1} value={transitionSpeed} onChange={e=>setTransitionSpeed(parseFloat(e.target.value))} style={{ width:'100%' }} />
-              </label>
+              {/* Transition speed removed per requirement */}
             </>
           )}
           {!terrainEnabled && (
             <div style={{ opacity:0.75, fontSize:11, marginBottom:8 }}>Aktiviere DEM um Überhöhung & Geschwindigkeit zu steuern.</div>
           )}
-          {availableLayers.length > 0 && (
-            <label style={{ display:'block', marginBottom:10 }}>WMS Layer
-              <select value={wmsLayerName||''} onChange={e=>selectLayer(e.target.value)} style={{ width:'100%', marginTop:4 }}>
-                {availableLayers.map(l => <option key={l} value={l}>{l}</option>)}
-              </select>
-            </label>
-          )}
-          {loading && <div style={{ fontSize:11, opacity:0.6 }}>Lade Capabilities...</div>}
+          {/* WMS Layer selection removed per requirement */}
           <div style={{ opacity:0.6, fontSize:11 }}>Hotkeys: F frei, T DEM, P Perf</div>
         </div>
       )}

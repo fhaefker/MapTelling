@@ -56,6 +56,19 @@ const MapShell: React.FC<MapShellProps> = (props) => {
   // Access primary map instance for hillshade hook
   const mapHook = useMap({ mapId: 'maptelling-map' });
   useHillshadeBackground({ map: mapHook.map, enabled: terrainEnabled, exaggeration: terrainExag });
+  // Hide WMS raster when terrain enabled (simulate pure DEM background)
+  useEffect(()=>{
+    const m:any = mapHook.map?.map;
+    if(!m) return;
+    const apply=()=>{
+      try {
+        if(m.getLayer && m.setLayoutProperty){
+          if(m.getLayer('wms-base')) m.setLayoutProperty('wms-base','visibility', terrainEnabled ? 'none':'visible');
+        }
+      } catch {}
+    };
+    if(m.loaded()) apply(); else m.once('load', apply);
+  }, [mapHook.map, terrainEnabled]);
   const [leftPad, setLeftPad] = useState(420);
   useEffect(()=>{
     const calc = () => {
@@ -78,7 +91,8 @@ const MapShell: React.FC<MapShellProps> = (props) => {
     layers: [ { id:'background', type:'background', paint:{'background-color':'#fff'} }, { id:'osm-fallback', type:'raster', source:'osm-fallback' } ]
   } as any;
 
-  const effectiveStyle = styleObject || (wmsLayerName ? config.style : fallbackRaster);
+  // Ensure base style always available; when terrain enabled we still need base for context unless we explicitly hide.
+  const effectiveStyle = styleObject || fallbackRaster;
 
   return (
     <MapErrorBoundary>
@@ -108,8 +122,6 @@ const MapShell: React.FC<MapShellProps> = (props) => {
           toggleTerrain={toggleTerrain}
           terrainExag={terrainExag}
           setTerrainExag={setTerrainExag}
-          transitionSpeed={transitionSpeed}
-          setTransitionSpeed={setTransitionSpeed}
         /></Suspense>
         {trackData && (
           <Suspense fallback={null}>
