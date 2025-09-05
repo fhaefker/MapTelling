@@ -18,9 +18,8 @@ export const config: WmsOnlyMapConfig = {
   wms: {
     baseUrl: 'https://osm-demo.wheregroup.com/ows?',
     version: '1.3.0',
-  // Primary candidate; if capabilities negotiation finds a better match it will swap.
-  // 'osm_auto:all' caused unknown layer errors in some environments; prefer 'osm' first.
-  layers: 'osm',
+    // Selected primary candidate. Adjust if capabilities later show a different canonical layer name.
+    layers: 'osm_auto:all',
     format: 'image/png',
     attribution: '© OpenStreetMap contributors / WhereGroup Demo WMS'
   },
@@ -100,11 +99,13 @@ export const config: WmsOnlyMapConfig = {
   showInset: true,
   terrain: {
     enabled: true,
-    // Public AWS Terrarium DEM tiles (no key). Encoding terrarium.
+    // MapLibre demo terrain RGB tiles (no key required). Encoding mapbox RGB.
+    // Source: https://demotiles.maplibre.org/
     tiles: [
-      'https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png'
+      'https://demotiles.maplibre.org/terrain-tiles/{z}/{x}/{y}.png'
     ],
     tileSize: 256,
     exaggeration: 1.4,
+    encoding: 'mapbox',
   },
 };

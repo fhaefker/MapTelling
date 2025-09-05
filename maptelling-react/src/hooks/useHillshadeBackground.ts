@@ -17,24 +17,27 @@ export const useHillshadeBackground = ({ map, enabled, exaggeration }: UseHillsh
     const m: any = map?.map || map; // support raw maplibre instance or wrapper
     if (!m) return;
     if (!config.terrain?.tiles) return; // no real DEM configured
-    const wmsLayerId = 'wms-base';
-    const hillshadeId = 'dem-hillshade';
+  const wmsLayerId = 'wms-base';
+  const hillshadeId = 'dem-hillshade';
+  // If using mapbox / terrain-rgb encoding we can skip synthetic hillshade layer (terrain shading handled by style / not needed)
+  const terrainCfg:any = (config as any).terrain;
+  const skipHillshade = terrainCfg?.encoding === 'mapbox';
     const safeLayerApis = typeof m.getLayer === 'function' && typeof m.setLayoutProperty === 'function';
   const safePaintApi = typeof m.setPaintProperty === 'function';
 
   const apply = () => {
       const haveSource = m.getSource && m.getSource('terrain-dem');
   // (debug logging removed for production cleanliness)
-      if (haveSource && safeLayerApis && !m.getLayer(hillshadeId) && typeof m.addLayer === 'function') {
+  if (!skipHillshade && haveSource && safeLayerApis && !m.getLayer(hillshadeId) && typeof m.addLayer === 'function') {
   // (debug logging removed)
         try { m.addLayer({ id: hillshadeId, type: 'hillshade', source: 'terrain-dem', paint: { 'hillshade-exaggeration': exaggeration }, layout:{ visibility: enabled ? 'visible':'none' } }); } catch {/* ignore */}
       }
       if (enabled) {
-        if (haveSource && safeLayerApis) {
+    if (haveSource && safeLayerApis) {
           try {
             if (m.getLayer(wmsLayerId)) m.setLayoutProperty(wmsLayerId, 'visibility', 'none');
-            if (m.getLayer(hillshadeId)) m.setLayoutProperty(hillshadeId, 'visibility', 'visible');
-            if (m.getLayer(hillshadeId) && safePaintApi) {
+      if (!skipHillshade && m.getLayer(hillshadeId)) m.setLayoutProperty(hillshadeId, 'visibility', 'visible');
+      if (!skipHillshade && m.getLayer(hillshadeId) && safePaintApi) {
               try { m.setPaintProperty(hillshadeId, 'hillshade-exaggeration', exaggeration); } catch {/* ignore */}
             }
           } catch {/* ignore */}
@@ -49,7 +52,7 @@ export const useHillshadeBackground = ({ map, enabled, exaggeration }: UseHillsh
       } else if (safeLayerApis) {
         try {
           if (m.getLayer(wmsLayerId)) m.setLayoutProperty(wmsLayerId, 'visibility', 'visible');
-          if (m.getLayer(hillshadeId)) m.setLayoutProperty(hillshadeId, 'visibility', 'none');
+          if (!skipHillshade && m.getLayer(hillshadeId)) m.setLayoutProperty(hillshadeId, 'visibility', 'none');
         } catch {/* ignore */}
       }
     };

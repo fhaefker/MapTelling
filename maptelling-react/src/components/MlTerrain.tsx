@@ -44,13 +44,12 @@ export const MlTerrain: React.FC<MlTerrainProps> = ({
         return;
       }
       if (!(m as any).getSource(sourceId)) {
-        if (url) {
-          (m as any).addSource(sourceId, { type: 'raster-dem', url, tileSize, maxzoom, encoding } as any);
-        } else if (tiles) {
-          (m as any).addSource(sourceId, { type: 'raster-dem', tiles, tileSize, maxzoom, encoding } as any);
-        } else {
-          return; // nothing to enable
-        }
+        const src: any = { type: 'raster-dem', tileSize, maxzoom };
+        if (url) src.url = url; else if (tiles) src.tiles = tiles; else return;
+        if (encoding) src.encoding = encoding; // ensure correct heights for non-terrarium
+        (m as any).addSource(sourceId, src);
+      } else if (encoding) {
+        // If source exists but encoding differs (unlikely), we could recreate - skip for now.
       }
       try { (m as any).setTerrain({ source: sourceId, exaggeration }); } catch(_){ }
     };

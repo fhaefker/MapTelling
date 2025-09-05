@@ -29,5 +29,6 @@ export interface MapConfig {
     url?: string;
     tileSize?: 256 | 512;
     exaggeration?: number;
+  encoding?: 'terrarium' | 'mapbox';
   };
 }
