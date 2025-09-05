@@ -30,5 +30,6 @@ export interface MapConfig {
     tileSize?: 256 | 512;
     exaggeration?: number;
   encoding?: 'terrarium' | 'mapbox';
+  hideBase?: boolean; // if true hide wms-base when terrain enabled
   };
 }

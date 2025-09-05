@@ -124,6 +124,7 @@ const MapShell: React.FC<MapShellProps> = (props) => {
   } as any;
 
   // Ensure base style always available; when terrain enabled we still need base for context unless we explicitly hide.
+  // If terrain enabled and config wants base hidden, we still need a background; reuse fallback raster for context.
   const effectiveStyle = styleObject || fallbackRaster;
 
   return (

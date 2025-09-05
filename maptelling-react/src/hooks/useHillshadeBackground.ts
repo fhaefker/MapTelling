@@ -24,13 +24,20 @@ export const useHillshadeBackground = ({ map, enabled, exaggeration }: UseHillsh
   const safePaintApi = typeof m.setPaintProperty === 'function';
 
   const apply = () => {
-      const haveSource = m.getSource && m.getSource('terrain-dem');
+      let haveSource = m.getSource && m.getSource('terrain-dem');
+      // Fallback: if terrain-dem not yet created by MlTerrain (load race), create minimal source referencing Terrarium tiles directly
+      if (!haveSource && enabled && config.terrain?.tiles && typeof m.addSource === 'function') {
+        try {
+          m.addSource('terrain-dem', { type:'raster-dem', tiles: config.terrain.tiles, tileSize: config.terrain.tileSize || 256, encoding: config.terrain.encoding || 'terrarium', maxzoom: 14 });
+          haveSource = m.getSource && m.getSource('terrain-dem');
+        } catch {/* ignore */}
+      }
   // (debug logging removed for production cleanliness)
   if (haveSource && safeLayerApis && !m.getLayer(hillshadeId) && typeof m.addLayer === 'function') {
   // (debug logging removed)
         try { m.addLayer({ id: hillshadeId, type: 'hillshade', source: 'terrain-dem', paint: { 'hillshade-exaggeration': exaggeration }, layout:{ visibility: enabled ? 'visible':'none' } }); } catch {/* ignore */}
       }
-      if (enabled) {
+  if (enabled) {
     if (haveSource && safeLayerApis) {
           try {
             if (m.getLayer(wmsLayerId)) m.setLayoutProperty(wmsLayerId, 'visibility', 'none');
@@ -47,7 +54,7 @@ export const useHillshadeBackground = ({ map, enabled, exaggeration }: UseHillsh
           m.on('sourcedata', onData);
           return () => { m.off && m.off('sourcedata', onData); };
         }
-      } else if (safeLayerApis) {
+  } else if (safeLayerApis) {
         try {
           if (m.getLayer(wmsLayerId)) m.setLayoutProperty(wmsLayerId, 'visibility', 'visible');
           if (m.getLayer(hillshadeId)) m.setLayoutProperty(hillshadeId, 'visibility', 'none');
