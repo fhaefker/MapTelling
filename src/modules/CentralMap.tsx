@@ -7,11 +7,13 @@ import { MapLibreMap, MlWmsLayer, useMap } from '@mapcomponents/react-maplibre';
   - Section 39/19: Nutzung spezialisierter Layer-Komponente statt imperativem addSource/addLayer.
   - WMS Layer (MlWmsLayer) deckt Integration eines externen OGC WMS ab.
 
-  Hintergrunddienst: WhereGroup OSM Demo.
-  Fester Endpoint: https://osm-demo.wheregroup.com (nur diese Hintergrundkarte verwenden)
+  Hintergrunddienst: WhereGroup OSM Demo (verpflichtende Basiskarte).
+  Verbindlicher Capabilities Endpoint: https://osm-demo.wheregroup.com/service?REQUEST=GetCapabilities&SERVICE=WMS&VERSION=1.3.0
+  Ausschließlich diese Hintergrundkarte ist erlaubt (siehe Governance Vorgabe) – keine alternativen Backdrops.
 */
 
-const wmsBaseUrl = 'https://osm-demo.wheregroup.com';
+// Verbindliche Service Basis (Capabilities geprüft) -> Tile Requests: base + WMS Parameter
+const wmsBaseUrl = 'https://osm-demo.wheregroup.com/service';
 
 // Kleines Status/Fehler Monitoring für WMS (Map Ebene) – Section 48 (Fehler) / 56 (Performance Instrumentation)
 const WmsStatus: React.FC<{ mapId: string; layerId: string }> = ({ mapId }) => {
@@ -31,10 +33,14 @@ const WmsStatus: React.FC<{ mapId: string; layerId: string }> = ({ mapId }) => {
 
 const CentralMap: React.FC = () => {
   const wmsParams = useMemo(() => ({
-    layers: 'OSM-WMS', // Layer Name laut GetCapabilities (häufig OSM-WMS oder OSM)
+    service: 'WMS',
+    request: 'GetMap',
+    layers: 'osm', // aus Capabilities (<Name>osm</Name>)
     format: 'image/png',
     transparent: false,
-    version: '1.3.0'
+    version: '1.3.0',
+    srs: 'EPSG:3857',
+    crs: 'EPSG:3857'
   }), []);
   const [showWms, setShowWms] = useState(true);
   const [opacity, setOpacity] = useState(1);
