@@ -19,13 +19,13 @@ export const useWmsStyle = (): WmsStyleResult => {
   useEffect(() => {
     let cancelled = false;
     const wms = (config as any).wms as { baseUrl: string; version: '1.1.1'|'1.3.0'; layers: string; format?: string; attribution?: string };
-    const preferred = [wms.layers, 'OSM-WMS', 'openstreetmap'];
+  const preferred = [wms.layers, 'osm', 'osm_auto:all', 'OSM-WMS', 'openstreetmap'];
 
     const buildStyle = (layer: string) => {
       const format = wms.format || 'image/png';
       const tileUrl = `${wms.baseUrl}service=WMS&request=GetMap&version=${wms.version}`+
         `&layers=${encodeURIComponent(layer)}&styles=&format=${encodeURIComponent(format)}`+
-        `&transparent=false&crs=EPSG:3857&width=256&height=256&bbox={bbox-epsg-3857}&TILED=TRUE`;
+        `&transparent=false&CRS=EPSG:3857&width=256&height=256&bbox={bbox-epsg-3857}&TILED=TRUE`;
       const rasterStyle = {
         version: 8,
         name: 'WhereGroup OSM Demo WMS',
@@ -37,12 +37,16 @@ export const useWmsStyle = (): WmsStyleResult => {
           { id: 'wms-base', type: 'raster', source: 'wms' }
         ]
       } as any;
-      setStyleObject(rasterStyle);
-      setWmsLayerName(layer);
+      // Avoid unnecessary re-renders if layer unchanged and style already built
+  setStyleObject((prev: any) => {
+        if (prev && wmsLayerName === layer) return prev;
+        return rasterStyle;
+      });
+      setWmsLayerName(current => current === layer ? current : layer);
     };
 
-    // Immediate style to avoid white flash
-    buildStyle(wms.layers);
+  // Immediate style to avoid white flash
+  if (!wmsLayerName) buildStyle(wms.layers);
 
     // Optional refinement via capabilities (skip in tests to keep deterministic)
     (async () => {

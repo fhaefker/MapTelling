@@ -18,8 +18,9 @@ export const config: WmsOnlyMapConfig = {
   wms: {
     baseUrl: 'https://osm-demo.wheregroup.com/ows?',
     version: '1.3.0',
-    // Selected primary candidate. Adjust if capabilities later show a different canonical layer name.
-    layers: 'osm_auto:all',
+  // Primary candidate; if capabilities negotiation finds a better match it will swap.
+  // 'osm_auto:all' caused unknown layer errors in some environments; prefer 'osm' first.
+  layers: 'osm',
     format: 'image/png',
     attribution: '© OpenStreetMap contributors / WhereGroup Demo WMS'
   },

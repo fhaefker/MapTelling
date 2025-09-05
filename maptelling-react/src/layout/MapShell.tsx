@@ -56,6 +56,7 @@ const MapShell: React.FC<MapShellProps> = (props) => {
   // Access primary map instance for hillshade hook
   const mapHook = useMap({ mapId: 'maptelling-map' });
   useHillshadeBackground({ map: mapHook.map, enabled: terrainEnabled, exaggeration: terrainExag });
+  useEffect(()=>{ if(mapHook.map?.map){ (window as any).MAPTELLING_PRIMARY_MAP = mapHook.map; } }, [mapHook.map]);
   const [leftPad, setLeftPad] = useState(420);
   useEffect(()=>{
     const calc = () => {
