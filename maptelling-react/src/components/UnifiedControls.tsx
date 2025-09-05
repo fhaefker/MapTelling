@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import useWmsStyle from '../hooks/useWmsStyle';
 
 interface UnifiedControlsProps {
   interactive: boolean;
@@ -14,6 +15,7 @@ interface UnifiedControlsProps {
 // Single compact floating control panel (top-right) merging previous ModeToggle + SettingsPanel DEM section.
 const UnifiedControls: React.FC<UnifiedControlsProps> = ({ interactive, onToggleInteractive, terrainEnabled, toggleTerrain, terrainExag, setTerrainExag, transitionSpeed, setTransitionSpeed }) => {
   const [open, setOpen] = useState(false);
+  const { availableLayers, wmsLayerName, selectLayer, loading } = useWmsStyle();
   return (
     <div style={{ position:'fixed', top:8, right:8, zIndex:50, display:'flex', flexDirection:'column', alignItems:'flex-end', gap:8 }}>
       <div style={{ display:'flex', gap:8 }}>
@@ -38,6 +40,14 @@ const UnifiedControls: React.FC<UnifiedControlsProps> = ({ interactive, onToggle
           {!terrainEnabled && (
             <div style={{ opacity:0.75, fontSize:11, marginBottom:8 }}>Aktiviere DEM um Überhöhung & Geschwindigkeit zu steuern.</div>
           )}
+          {availableLayers.length > 0 && (
+            <label style={{ display:'block', marginBottom:10 }}>WMS Layer
+              <select value={wmsLayerName||''} onChange={e=>selectLayer(e.target.value)} style={{ width:'100%', marginTop:4 }}>
+                {availableLayers.map(l => <option key={l} value={l}>{l}</option>)}
+              </select>
+            </label>
+          )}
+          {loading && <div style={{ fontSize:11, opacity:0.6 }}>Lade Capabilities...</div>}
           <div style={{ opacity:0.6, fontSize:11 }}>Hotkeys: F frei, T DEM, P Perf</div>
         </div>
       )}
