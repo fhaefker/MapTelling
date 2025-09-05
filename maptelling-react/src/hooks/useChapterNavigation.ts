@@ -71,6 +71,8 @@ export const useChapterNavigation = (opts: UseChapterNavigationOptions): Chapter
         ...flyOptions,
       });
     }
+  // Emit custom chapterchange event (non-breaking: only if map wrapper supports .fire)
+  try { (map as any)?.fire?.('chapterchange', { index, chapter }); } catch { /* ignore */ }
   }, [map?.map, chapters, flyOptions, applyOffset]);
 
   const goToChapter = useCallback((index: number, immediate?: boolean) => {
