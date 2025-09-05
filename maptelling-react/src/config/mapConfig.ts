@@ -106,6 +106,6 @@ export const config: WmsOnlyMapConfig = {
     tileSize: 256,
     exaggeration: 1.4,
     encoding: 'terrarium',
-  hideBase: true,
+  hideBase: false,
   },
 };

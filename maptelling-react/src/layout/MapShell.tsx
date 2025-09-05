@@ -89,7 +89,7 @@ const MapShell: React.FC<MapShellProps> = (props) => {
       setHillshadeReady(ready);
       // Hide wms only when hillshade layer exists to avoid white flash
       if(m.getLayer && m.setLayoutProperty && m.getLayer('wms-base')){
-        try { m.setLayoutProperty('wms-base','visibility', (terrainEnabled) ? 'none':'visible'); } catch {}
+        try { m.setLayoutProperty('wms-base','visibility', (terrainEnabled && ready) ? 'none':'visible'); } catch {}
       }
       if(m.getLayer && m.getLayer('dem-hillshade')){
         try { m.setLayoutProperty('dem-hillshade','visibility', terrainEnabled ? 'visible':'none'); } catch {}
