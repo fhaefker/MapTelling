@@ -1,0 +1,35 @@
+/* Global layout ensuring the map fills the viewport */
+html, body, #root, .mapShell {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.mapShell {
+  position: relative;
+  font-family: system-ui, Arial, sans-serif;
+  background: #f8f9fa; /* fallback while map initializes */
+}
+
+/* Toolbar styling */
+.toolbar {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  background: #ffffff;
+  padding: 6px 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+
+/* MapLibre canvas (optional tweaks) */
+.maplibregl-canvas {
+  outline: none;
+}
