@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { MlGeoJsonLayer } from '@mapcomponents/react-maplibre';
 import type { FeatureCollection, Point } from 'geojson';
-import { config } from '../config/mapConfig';
+import { useChapters } from '../context/ChaptersContext';
 
 interface MarkerLayerProps {
   mapId: string;
@@ -9,8 +9,9 @@ interface MarkerLayerProps {
 }
 
 const MarkerLayer: React.FC<MarkerLayerProps> = ({ mapId, activeChapterId }) => {
+  const { chapters } = useChapters();
   const { baseData, activeData } = useMemo(() => {
-    const features = config.chapters
+    const features = chapters
       .filter((c) => c.marker)
       .map((c) => ({
         type: 'Feature' as const,
@@ -28,7 +29,7 @@ const MarkerLayer: React.FC<MarkerLayerProps> = ({ mapId, activeChapterId }) => 
       features: activeFeature ? [activeFeature] : [],
     };
     return { baseData, activeData };
-  }, [activeChapterId]);
+  }, [activeChapterId, chapters]);
 
   if (baseData.features.length === 0) return null;
 

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import type { Chapter } from '../types/story';
 import { useRenderLog } from '../hooks/useRenderLog';
+import useImageStore from '../hooks/useImageStore';
 import { useInView } from 'react-intersection-observer';
 import { useChapters } from '../context/ChaptersContext';
 import { useMap } from '@mapcomponents/react-maplibre';
@@ -176,12 +177,24 @@ const ChapterStep: React.FC<{
         ) : (
           <>
             <h3 style={{ marginTop: 0 }}>{title}</h3>
+            <ChapterImage chapterId={chapterId} />
             <p style={{ marginBottom: 0 }}>{description}</p>
           </>
         )}
       </div>
     </div>
   );
+};
+
+// Renders chapter image if configured; resolves data URL if key stored in image store
+const ChapterImage: React.FC<{ chapterId: string }> = ({ chapterId }) => {
+  const { chapters } = useChapters();
+  const ch = chapters.find(c=>c.id===chapterId);
+  const { getUrl } = useImageStore();
+  if (!ch?.image) return null;
+  const imgSrc = ch.image.startsWith('img:') ? (getUrl(ch.image) || undefined) : ch.image;
+  if (!imgSrc) return null;
+  return <img src={imgSrc} alt={ch.title} style={{ maxWidth:'100%', borderRadius:6, margin:'8px 0' }} />;
 };
 
 const MemoChapterStep = React.memo(ChapterStep, (a, b) => a.chapterId === b.chapterId && a.active === b.active && a.title === b.title && a.description === b.description && a.editing === b.editing && a.editTitle === b.editTitle && a.editDesc === b.editDesc);

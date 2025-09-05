@@ -25,7 +25,8 @@ const StoryMenu: React.FC<StoryMenuProps> = ({ creatorOpen, toggleCreator }) => 
   const [embedImages, setEmbedImages] = useState(false);
   const [onlyUsed, setOnlyUsed] = useState(true);
   const [editingId, setEditingId] = useState<string|null>(null);
-  const [draft, setDraft] = useState<{ title: string; description: string; alignment: string; image?: string; marker?: string; }|null>(null);
+  const [draft, setDraft] = useState<{ title: string; description: string; alignment: string; image?: string; marker?: string; _loc?: any }|null>(null);
+  const [captureMode, setCaptureMode] = useState<'none'|'marker'>('none');
 
   const handleExport = () => {
     try {
@@ -100,6 +101,23 @@ const StoryMenu: React.FC<StoryMenuProps> = ({ creatorOpen, toggleCreator }) => 
       setDraft(d => d ? { ...d, _loc: { center:[c.lng, c.lat], zoom, pitch, bearing } as any } : d);
     } catch {/* ignore */}
   };
+  // Map click marker capture handler
+  React.useEffect(()=>{
+    if(!map?.map) return;
+    const m:any = map.map;
+    if(captureMode==='marker'){
+      const handler = (e:any) => {
+        const lng = e?.lngLat?.lng ?? e?.lngLat?.[0];
+        const lat = e?.lngLat?.lat ?? e?.lngLat?.[1];
+        if (typeof lng === 'number' && typeof lat === 'number') {
+          setDraft(d=> d? { ...d, marker: `${lng.toFixed(5)},${lat.toFixed(5)}` }:d);
+          setCaptureMode('none');
+        }
+      };
+      m.on && m.on('click', handler);
+      return ()=>{ m.off && m.off('click', handler); };
+    }
+  }, [map, captureMode]);
   const triggerImage = () => imageInputRef.current?.click();
   const handleImages = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files) return;
@@ -197,6 +215,10 @@ const StoryMenu: React.FC<StoryMenuProps> = ({ creatorOpen, toggleCreator }) => 
           <label style={{ display:'block', marginBottom:8 }}>Marker (lng,lat)
             <input value={draft.marker||''} onChange={e=>setDraft(d=> d? { ...d, marker:e.target.value }:d)} placeholder="-5.12,56.99" style={{ width:'100%', padding:4, borderRadius:4, border:'1px solid #444', background:'#111', color:'#fff' }} />
           </label>
+          <div style={{ display:'flex', gap:8, marginBottom:8 }}>
+            <button onClick={()=>setCaptureMode(c=> c==='marker'?'none':'marker')} style={{ flex:1, padding:'6px 8px', borderRadius:4, background: captureMode==='marker' ? '#ff6b6b':'#444', color:'#fff', border:'none', cursor:'pointer' }}>{captureMode==='marker' ? 'Marker: Klick auf Karte…' : 'Marker von Karte'}</button>
+            {draft._loc && <span style={{ flex:1, fontSize:10, lineHeight:1.3, background:'#222', padding:'6px 8px', borderRadius:4 }}><strong>View:</strong><br />{draft._loc.center[0].toFixed(3)},{draft._loc.center[1].toFixed(3)} z{draft._loc.zoom.toFixed(2)}</span>}
+          </div>
           <div style={{ display:'flex', justifyContent:'space-between', gap:8 }}>
             {editingId && <button onClick={()=>{ chaptersCtx.resetChapter(editingId); setPanel('none'); }} style={{ flex:1, padding:'6px 8px', borderRadius:4, background:'#777', color:'#fff', border:'none', cursor:'pointer' }}>Reset</button>}
             <button onClick={saveDraft} style={{ flex:2, padding:'6px 8px', borderRadius:4, background:'#2d6a4f', color:'#fff', border:'none', cursor:'pointer' }}>Speichern</button>
