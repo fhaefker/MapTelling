@@ -1,32 +1,56 @@
 # MapTelling - Minimal MapComponents Application
 
-A minimal MapComponents application showing a fullscreen WMS map from WhereGroup's OSM Demo service, centered on Bonn, Germany.
+Eine schlanke MapComponents-Anwendung mit Vollbild-Karte und WhereGroup OSM WMS Demo Service, zentriert auf Bonn (WhereGroup HQ).
 
 ## Features
 
-- **Fullscreen Map**: Uses the entire viewport
-- **WMS Background**: WhereGroup OSM Demo service  
-- **Minimal Design**: Clean, focused implementation
-- **GitHub Pages Ready**: Automated deployment workflow
+- **Vollbild-Karte**: Nutzt den gesamten Browser-Viewport
+- **WhereGroup WMS**: OSM Demo Service als Hintergrund
+- **MapComponents**: Deklarative React-Architektur
+- **Minimales Design**: Fokussierte, schlanke Implementierung
+- **GitHub Pages**: Automatisches Deployment-Workflow
 
-## Development
+## Technologie-Stack
+
+- **React 19** + **TypeScript**
+- **MapComponents** (`@mapcomponents/react-maplibre` ^1.6.0)
+- **Vite** für schnelle Entwicklung
+- **Node.js** >=20
+
+## Entwicklung
 
 ```bash
-# Install dependencies
+# Dependencies installieren
 npm install
 
-# Start development server
+# Development Server starten
 npm run dev
 
-# Build for production
+# Production Build
 npm run build
+
+# Preview Production Build
+npm run preview
 ```
 
 ## Deployment
 
-This application automatically deploys to GitHub Pages when pushed to the main branch.
+Die Anwendung wird automatisch zu GitHub Pages deployed, wenn Änderungen zum `main` Branch gepusht werden.
 
 **Live Demo**: https://fhaefker.github.io/MapTelling
+
+## Architektur
+
+Die Anwendung folgt den WhereGroup-Prinzipien:
+- **Configuration over Code**: Deklarative MapLibre Style JSON
+- **Open Source First**: MIT-lizenzierte MapComponents
+- **Standards-driven**: OGC WMS Integration
+- **Minimal & Fokussiert**: Keine unnötige Komplexität
+
+## WhereGroup
+
+Entwickelt mit [MapComponents](https://mapcomponents.org) von der [WhereGroup GmbH](https://wheregroup.com).
+
 
 ## Technology Stack
 
