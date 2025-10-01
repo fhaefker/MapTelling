@@ -1,10 +1,8 @@
 import "./App.css";
 import { MapComponentsProvider, MapLibreMap } from "@mapcomponents/react-maplibre";
+import { WHEREGROUP_WMS_URL, WHEREGROUP_HQ } from "./lib/constants";
 
 function App() {
-  // WhereGroup WMS Demo Service
-  const wmsUrl = "https://osm-demo.wheregroup.com/service?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&FORMAT=image%2Fpng&TRANSPARENT=true&LAYERS=osm&CRS=EPSG%3A3857&STYLES=&WIDTH=256&HEIGHT=256&BBOX={bbox-epsg-3857}";
-  
   return (
     <MapComponentsProvider>
       <MapLibreMap
@@ -13,19 +11,19 @@ function App() {
           style: {
             version: 8,
             sources: {
-              "wms-source": {
+              "maptelling-wms-source": {
                 type: "raster",
-                tiles: [wmsUrl],
+                tiles: [WHEREGROUP_WMS_URL],
                 tileSize: 256
               }
             },
             layers: [{
-              id: "wms-layer",
+              id: "maptelling-wms-layer",
               type: "raster",
-              source: "wms-source"
+              source: "maptelling-wms-source"
             }]
           },
-          center: [7.1, 50.73], // Bonn, WhereGroup HQ
+          center: WHEREGROUP_HQ,
           zoom: 10,
         }}
         style={{ 
