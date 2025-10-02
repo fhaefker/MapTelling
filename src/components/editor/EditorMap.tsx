@@ -21,11 +21,18 @@
  * @see src/components/viewer/StoryViewer.tsx (Reference Pattern)
  */
 
+import { useEffect } from 'react';
 import { Box } from '@mui/material';
 import { MapComponentsProvider, MapLibreMap } from '@mapcomponents/react-maplibre';
 import { MapClickHandler } from '../map/MapClickHandler';
 import { usePositionSetMode } from '../../hooks/usePositionSetMode';
 import { log } from '../../utils/logger';
+import { 
+  WHEREGROUP_WMS_URL, 
+  WHEREGROUP_HQ, 
+  LAYER_IDS, 
+  MAP_SETTINGS 
+} from '../../lib/constants';
 
 // ========================================
 // TYPES
@@ -46,10 +53,6 @@ export interface EditorMapProps {
 
 const EDITOR_MAP_ID = 'editor-map';
 
-// Default: WhereGroup HQ Bonn
-const DEFAULT_CENTER: [number, number] = [7.1, 50.73];
-const DEFAULT_ZOOM = 10;
-
 // ========================================
 // OUTER COMPONENT (NO useMap!)
 // ========================================
@@ -63,8 +66,8 @@ const DEFAULT_ZOOM = 10;
  * Pattern from StoryViewer.tsx
  */
 export const EditorMap: React.FC<EditorMapProps> = ({
-  center = DEFAULT_CENTER,
-  zoom = DEFAULT_ZOOM,
+  center = WHEREGROUP_HQ,
+  zoom = MAP_SETTINGS.defaultZoom,
   onPositionSet
 }) => {
   return (
@@ -91,8 +94,8 @@ export const EditorMap: React.FC<EditorMapProps> = ({
  * Pattern from StoryViewerContent
  */
 const EditorMapContent: React.FC<EditorMapProps> = ({
-  center = DEFAULT_CENTER,
-  zoom = DEFAULT_ZOOM,
+  center = WHEREGROUP_HQ,
+  zoom = MAP_SETTINGS.defaultZoom,
   onPositionSet
 }) => {
   // ✅ Position Set Mode Hook
@@ -158,9 +161,32 @@ const EditorMapContent: React.FC<EditorMapProps> = ({
       <MapLibreMap
         mapId={EDITOR_MAP_ID}
         options={{
+          style: {
+            version: 8,
+            sources: {
+              [LAYER_IDS.wmsSource]: {
+                type: 'raster',
+                tiles: [WHEREGROUP_WMS_URL],
+                tileSize: 256
+              }
+            },
+            layers: [{
+              id: LAYER_IDS.wmsLayer,
+              type: 'raster',
+              source: LAYER_IDS.wmsSource
+            }]
+          },
           center,
           zoom,
-          style: 'https://demotiles.maplibre.org/style.json'
+          minZoom: MAP_SETTINGS.minZoom,
+          maxZoom: MAP_SETTINGS.maxZoom
+        }}
+        style={{
+          position: 'absolute',
+          top: 0,
+          bottom: 0,
+          left: 0,
+          right: 0
         }}
       />
 
@@ -219,6 +245,3 @@ const EditorMapContent: React.FC<EditorMapProps> = ({
     </Box>
   );
 };
-
-// Missing import
-import { useEffect } from 'react';
