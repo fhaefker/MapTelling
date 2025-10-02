@@ -3,9 +3,11 @@ import SaveIcon from '@mui/icons-material/Save';
 import DownloadIcon from '@mui/icons-material/Download';
 import { PhotoUploader } from './PhotoUploader';
 import { PhotoList } from './PhotoList';
+import { EditorMap } from './EditorMap';
 import { useStoryState } from '../../hooks/useStoryState';
 import type { PhotoFeature } from '../../types/story';
 import { WHEREGROUP_COLORS } from '../../lib/constants';
+import { log } from '../../utils/logger';
 
 /**
  * StoryEditor Component
@@ -54,6 +56,39 @@ export const StoryEditor = () => {
     addPhoto(updatedFeature);
   };
 
+  const handleSetPosition = (photoId: string) => {
+    log.info('StoryEditor', 'Position setzen Button geklickt', { photoId });
+    
+    // Dispatch custom event to activate position-set mode
+    const event = new CustomEvent('position-set-mode-activate', {
+      detail: { photoId }
+    });
+    window.dispatchEvent(event);
+  };
+
+  const handlePositionSet = (photoId: string, coordinates: [number, number]) => {
+    log.info('StoryEditor', 'Position gesetzt von Karte', { photoId, coordinates });
+    
+    // Find photo to get current properties
+    const photo = story?.features.find(f => f.properties.id === photoId);
+    if (!photo) {
+      log.error('StoryEditor', 'Photo nicht gefunden', { photoId });
+      return;
+    }
+    
+    // Update photo with new coordinates
+    updatePhoto(photoId, {
+      geometry: {
+        type: 'Point',
+        coordinates
+      },
+      properties: {
+        ...photo.properties,
+        positionSource: 'manual'
+      }
+    });
+  };
+
   const handleExport = () => {
     if (!story) return;
     
@@ -70,17 +105,19 @@ export const StoryEditor = () => {
   };
 
   return (
-    <Box sx={{ height: '100vh', overflow: 'auto', p: 3, bgcolor: '#f5f5f5' }}>
-      <Stack spacing={3} maxWidth={800} mx="auto">
-        {/* Header */}
-        <Paper elevation={2} sx={{ p: 3 }}>
-          <Typography variant="h4" gutterBottom sx={{ color: WHEREGROUP_COLORS.blue.primary }}>
-            Story Editor
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            Erstelle deine interaktive Foto-Story mit GPS-Daten und EXIF-Metadaten
-          </Typography>
-        </Paper>
+    <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'row', overflow: 'hidden' }}>
+      {/* Left Panel - Editor */}
+      <Box sx={{ width: '400px', overflow: 'auto', p: 3, bgcolor: '#f5f5f5', borderRight: '1px solid #ddd' }}>
+        <Stack spacing={3}>
+          {/* Header */}
+          <Paper elevation={2} sx={{ p: 3 }}>
+            <Typography variant="h4" gutterBottom sx={{ color: WHEREGROUP_COLORS.blue.primary }}>
+              Story Editor
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Erstelle deine interaktive Foto-Story mit GPS-Daten und EXIF-Metadaten
+            </Typography>
+          </Paper>
 
         {/* Story Metadata */}
         <Paper elevation={2} sx={{ p: 3 }}>
@@ -133,6 +170,7 @@ export const StoryEditor = () => {
                 onPhotoUpdate={updatePhoto}
                 onPhotoRemove={removePhoto}
                 onPhotosReorder={reorderPhotos}
+                onSetPosition={handleSetPosition}
               />
             </Paper>
           </>
@@ -175,7 +213,15 @@ export const StoryEditor = () => {
             Keine Daten werden an einen Server übertragen. Privacy by Design! 🔒
           </Typography>
         </Paper>
-      </Stack>
+        </Stack>
+      </Box>
+
+      {/* Right Panel - Map */}
+      <Box sx={{ flex: 1, position: 'relative' }}>
+        <EditorMap 
+          onPositionSet={handlePositionSet}
+        />
+      </Box>
     </Box>
   );
 };

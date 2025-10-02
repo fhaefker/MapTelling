@@ -12,6 +12,7 @@ import {
 import DeleteIcon from '@mui/icons-material/Delete';
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
+import RoomIcon from '@mui/icons-material/Room';
 import type { PhotoFeature } from '../../types/story';
 import { WHEREGROUP_COLORS } from '../../lib/constants';
 
@@ -20,6 +21,7 @@ interface PhotoListProps {
   onPhotoUpdate: (id: string, updates: Partial<PhotoFeature>) => void;
   onPhotoRemove: (id: string) => void;
   onPhotosReorder: (startIndex: number, endIndex: number) => void;
+  onSetPosition?: (photoId: string) => void;
 }
 
 /**
@@ -54,7 +56,8 @@ export const PhotoList = ({
   photos,
   onPhotoUpdate,
   onPhotoRemove,
-  onPhotosReorder
+  onPhotosReorder,
+  onSetPosition
 }: PhotoListProps) => {
   const handleMoveUp = (index: number) => {
     if (index > 0) {
@@ -175,6 +178,24 @@ export const PhotoList = ({
               >
                 <ArrowDownwardIcon />
               </IconButton>
+
+              {/* Position setzen Button */}
+              {onSetPosition && (
+                <IconButton
+                  size="small"
+                  onClick={() => onSetPosition(photo.properties.id)}
+                  sx={{ 
+                    color: WHEREGROUP_COLORS.orange,
+                    '&:hover': {
+                      bgcolor: 'rgba(255, 152, 0, 0.08)'
+                    }
+                  }}
+                  aria-label="Position auf Karte setzen"
+                  title="Position auf Karte setzen"
+                >
+                  <RoomIcon />
+                </IconButton>
+              )}
 
               <Box sx={{ flex: 1 }} />
 
