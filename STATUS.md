@@ -1,9 +1,9 @@
 # 📊 MapTelling Status Report
-**Stand: 1. Oktober 2025, 18:00 Uhr**
+**Stand: 2. Oktober 2025, 10:00 Uhr**
 
 ---
 
-## ✅ Phase 1: Foundation (ABGESCHLOSSEN)
+## ✅ Phase 1: Foundation (ABGESCHLOSSEN) ✅
 
 ### Was ist fertig:
 - **8 neue Dateien** (793 Zeilen Code)
@@ -23,13 +23,36 @@
   - Constants statt Hardcoding verwendet
   - Namespace-Prefix auf allen IDs
 
+---
+
+## ✅ Phase 2: Custom Hooks (ABGESCHLOSSEN) ✅
+
+### Was ist fertig:
+- **6 neue Dateien** (735 Zeilen Code)
+- **Custom Hooks** (MapComponents & WhereGroup Compliant)
+  - `src/hooks/useExifParser.ts` - EXIF + GPS Extraktion
+  - `src/hooks/usePhotoUpload.ts` - Upload Workflow (Validation → Storage)
+  - `src/hooks/useStoryState.ts` - State Management + Auto-Save
+  - `src/hooks/useScrollSync.ts` - Scroll ↔ Map Sync + Accessibility
+  - `src/hooks/useKeyboardNav.ts` - Keyboard Navigation (WCAG 2.1)
+  - `src/hooks/index.ts` - Hook Exports
+
+### Compliance Features:
+- ✅ useMap Hook (MapComponents Pattern)
+- ✅ useMemo für stabile Referenzen
+- ✅ prefers-reduced-motion Support (duration: 0)
+- ✅ Clean Unmount (Observer disconnect)
+- ✅ No Conditional Hooks
+- ✅ Keyboard Navigation (Arrow Keys, Home, End)
+
 ### Git Status:
 - **Branch:** `feat/photo-story-foundation`
 - **Commits:** 
   - `9b42d48` - Phase 1 Foundation (Types, Storage, Utilities)
   - `4c6c762` - Refactoring (MapComponentsProvider, Constants)
+  - `4f988cb` - STATUS.md Documentation
+  - `567bb95` - Phase 2 Custom Hooks ✅ **NEU**
 - **Auf GitHub:** ✅ Gepusht
-- **PR möglich:** https://github.com/fhaefker/MapTelling/pull/new/feat/photo-story-foundation
 
 ---
 
@@ -56,18 +79,19 @@
 
 ---
 
-## 🚀 Nächste Schritte (Phase 2: Custom Hooks)
+## 🚀 Nächste Schritte (Phase 3: UI Components)
 
-### Hooks zu implementieren:
-1. **usePhotoUpload** - File-Validierung, EXIF-Extraktion, IndexedDB-Upload
-2. **useExifParser** - GPS-Koordinaten aus EXIF extrahieren
-3. **useStoryState** - Story State Management mit Auto-Save
-4. **useScrollSync** - Scroll → Map Synchronisation (+ prefers-reduced-motion)
-5. **useKeyboardNav** - Tastatur-Navigation (Accessibility)
+### Komponenten zu implementieren:
+1. **PhotoMarkerLayer** - MlGeoJsonLayer Wrapper mit Active State
+2. **StoryViewer** - Main Layout (Map + Sidebar)
+3. **StoryPanel** - Scrollable Sidebar mit PhotoCards
+4. **PhotoCard** - Einzelne Story-Station
+5. **PhotoUploader** - Drag & Drop UI
 
 ### Abhängigkeiten:
 - Phase 1 ✅ FERTIG
-- Phase 2 → Benötigt für Phase 3 (UI Components)
+- Phase 2 ✅ FERTIG
+- Phase 3 → In Arbeit
 
 ---
 
@@ -116,31 +140,29 @@ Die App ist jetzt **schlank und compliant**:
 # Branch auschecken
 git checkout feat/photo-story-foundation
 
-# Phase 2 starten
-mkdir -p src/hooks
-# usePhotoUpload.ts implementieren
-# useExifParser.ts implementieren
-# useStoryState.ts implementieren
-# useScrollSync.ts implementieren
-# useKeyboardNav.ts implementieren
+# Phase 3 starten
+mkdir -p src/components/map
+# PhotoMarkerLayer.tsx implementieren
+# StoryViewer.tsx implementieren
+# StoryPanel.tsx implementieren
 ```
 
-**Geschätzter Aufwand Phase 2:** ~4-6 Stunden  
-**Danach:** Phase 3 UI Components (StoryViewer, PhotoPanel, PhotoUploader)
+**Geschätzter Aufwand Phase 3:** ~6-8 Stunden  
+**Danach:** Phase 4 Polish & Accessibility
 
 ---
 
 ## 🎯 Projekt-Fortschritt
 
 ```
-[████████████████░░░░░░░░░░░░░░░░] 30% Complete
+[████████████████████████░░░░░░░░] 60% Complete
 
 Phase 1: Foundation        ████████████████ 100% ✅
-Phase 2: Custom Hooks      ░░░░░░░░░░░░░░░░   0%
+Phase 2: Custom Hooks      ████████████████ 100% ✅
 Phase 3: UI Components     ░░░░░░░░░░░░░░░░   0%
 Phase 4: Polish & A11y     ░░░░░░░░░░░░░░░░   0%
 ```
 
 ---
 
-**Bereit für morgen! 🚀**
+**Bereit für Phase 3! 🚀**
