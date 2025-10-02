@@ -17,6 +17,7 @@ import { useStoryMode } from '../../hooks/useStoryMode';
 import { useInitialView } from '../../hooks/useInitialView';
 import { useMapScrollMode } from '../../hooks/useMapScrollMode';
 import { useURLSync } from '../../hooks/useURLParams';
+import { useCameraFly } from '../../hooks/useCameraFly';
 import type { PhotoStory } from '../../types/story';
 import { 
   WHEREGROUP_WMS_URL, 
@@ -59,6 +60,14 @@ const StoryViewerContent = ({
     mapId: MAP_SETTINGS.mapId,
     photos: story.features,
     padding: 10
+  });
+  
+  // ✅ Camera Fly (fliegt zu aktivem Foto)
+  useCameraFly({
+    mapId: MAP_SETTINGS.mapId,
+    photos: story.features,
+    activeIndex,
+    enabled: isStoryMode // Nur im Story-Modus
   });
   
   // ✅ Keyboard Navigation (nur im Story-Modus)
