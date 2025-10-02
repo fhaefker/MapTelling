@@ -117,26 +117,21 @@ export class PhotoStorage {
  */
 export class StoryStorage {
   /**
-   * Speichert Story in LocalStorage
-   * 
-   * @param story - PhotoStory Objekt
+   * Save story to LocalStorage
    */
-  static save(story: PhotoStory): void {
+  static async save(story: PhotoStory): Promise<void> {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(story));
     } catch (error) {
       console.error('Failed to save story:', error);
-      // TODO: Quota exceeded → User-Warnung anzeigen
-      throw new Error('Storage quota exceeded');
+      throw new Error('Story save failed');
     }
-  }
-  
-  /**
+  }  /**
    * Lädt Story aus LocalStorage
    * 
    * @returns PhotoStory oder null falls nicht vorhanden
    */
-  static load(): PhotoStory | null {
+  static async load(): Promise<PhotoStory | null> {
     try {
       const data = localStorage.getItem(STORAGE_KEY);
       return data ? JSON.parse(data) : null;
