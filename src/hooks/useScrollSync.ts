@@ -18,6 +18,11 @@ interface UseScrollSyncOptions {
  * Synchronizes scroll position with map camera position.
  * Uses IntersectionObserver to detect visible photos and animates map accordingly.
  * 
+ * ✅ PERFORMANCE OPTIMIZATION:
+ * - Debouncing: flyTo nur wenn Index sich ändert (nicht bei jedem Scroll-Event)
+ * - lastFlyToIndex: Verhindert redundante flyTo-Calls
+ * - isAnimating Flag: Blockiert während laufender Animation
+ * 
  * ✅ MapComponents Compliant:
  * - Uses useMap hook (not direct map access)
  * - Respects prefers-reduced-motion
@@ -53,6 +58,8 @@ export const useScrollSync = ({
   const { map, mapIsReady } = useMap({ mapId });
   const observerRef = useRef<IntersectionObserver | null>(null);
   const isManualScroll = useRef(false);
+  const lastFlyToIndex = useRef<number>(-1); // ✅ CRITICAL: Verhindert redundante flyTo
+  const isAnimating = useRef(false); // ✅ Blockiert während Animation
   
   // ✅ Check prefers-reduced-motion EINMAL beim Setup
   const prefersReducedMotion = useRef(
@@ -68,17 +75,32 @@ export const useScrollSync = ({
         observerRef.current.disconnect();
         observerRef.current = null;
       }
+      lastFlyToIndex.current = -1; // Reset
       return;
     }
     
     observerRef.current = new IntersectionObserver(
       (entries) => {
         entries.forEach(entry => {
-          if (entry.isIntersecting && !isManualScroll.current) {
+          if (entry.isIntersecting && !isManualScroll.current && !isAnimating.current) {
             const index = parseInt(entry.target.getAttribute('data-index') || '0', 10);
+            
+            // ✅ CRITICAL: Skip wenn gleicher Index wie letzte flyTo
+            if (index === lastFlyToIndex.current) {
+              return;
+            }
+            
             const photo = photos[index];
             
             if (!photo || !map?.map) return;
+            
+            // ✅ Set animation flag
+            isAnimating.current = true;
+            lastFlyToIndex.current = index;
+            
+            const duration = prefersReducedMotion.current 
+              ? 0 
+              : (photo.properties.camera.duration || 2000);
             
             // ✅ MapLibre flyTo mit Accessibility-Support
             map.map.flyTo({
@@ -86,13 +108,14 @@ export const useScrollSync = ({
               zoom: photo.properties.camera.zoom,
               bearing: photo.properties.camera.bearing || 0,
               pitch: photo.properties.camera.pitch || 0,
-              // ✅ CRITICAL: duration 0 wenn reduced motion
-              duration: prefersReducedMotion.current 
-                ? 0 
-                : (photo.properties.camera.duration || 2000),
-              // ✅ essential: true respektiert prefers-reduced-motion
+              duration,
               essential: true
             });
+            
+            // ✅ Reset animation flag nach duration
+            setTimeout(() => {
+              isAnimating.current = false;
+            }, duration + 100); // +100ms Puffer
             
             onPhotoChange(index);
           }
