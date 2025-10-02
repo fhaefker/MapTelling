@@ -38,6 +38,34 @@ Eine Webanwendung, die Foto-Storytelling mit interaktiver Kartografie verbindet.
 - **ExifReader 4.32** - GPS & Metadata Extraction
 - **Vite 7.1** - Fast Build Tool
 
+## 📖 Dokumentation
+
+### Für Entwickler
+- **[Anti-Patterns](docs/ANTI_PATTERNS.md)** - Quick Reference (3 Seiten) 🔴 **START HIER**
+- **[Lessons Learned](docs/LESSONS_LEARNED.md)** - Vollständige Analyse (60 Seiten)
+- **[Summary](docs/LESSONS_SUMMARY.md)** - Executive Summary
+- **[Bugfix Analysis](docs/BUGFIX.md)** - Root Cause Analysis
+
+### Wichtigste Erkenntnisse
+```yaml
+Provider Ordering:
+  Problem: 80% aller MapComponents Bugs
+  Symptom: "TypeError: e.mapExists is not a function"
+  Lösung: Component Split Pattern (Outer/Inner)
+  
+React 19 Strict Mode:
+  Problem: Maskiert Fehler in Development
+  Lösung: IMMER "npm run preview" testen vor Deploy
+  
+GitHub Pages Routing:
+  Problem: Direct Navigation → 404 Error
+  Lösung: 404.html Redirect Script
+```
+
+### Architektur
+- **[CONCEPT.md](CONCEPT.md)** - Vollständiges Konzeptdokument
+- **[DEPLOYMENT.md](DEPLOYMENT.md)** - Deployment Anleitung
+
 ## Entwicklung
 
 ```bash
