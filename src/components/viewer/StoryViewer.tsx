@@ -8,6 +8,7 @@ import { PhotoMarkerLayer } from '../map/PhotoMarkerLayer';
 import { StoryPanel } from './StoryPanel';
 import { LoadingSpinner } from '../shared/LoadingSpinner';
 import { ShareButton } from '../shared/ShareButton';
+import { VersionBadge } from '../shared/VersionBadge';
 import { MapWheelController } from './MapWheelController';
 import { MapTouchController } from './MapTouchController';
 import { useStoryState } from '../../hooks/useStoryState';
@@ -280,6 +281,8 @@ const StoryViewerContent = ({
             }}
           />
         )}
+        
+        <VersionBadge position="bottom-left" label="Viewer" />
       </Box>
     </Box>
   );

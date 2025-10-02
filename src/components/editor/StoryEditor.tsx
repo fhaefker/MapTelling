@@ -4,6 +4,7 @@ import DownloadIcon from '@mui/icons-material/Download';
 import { PhotoUploader } from './PhotoUploader';
 import { PhotoList } from './PhotoList';
 import { EditorMap } from './EditorMap';
+import { VersionBadge } from '../shared/VersionBadge';
 import { useStoryState } from '../../hooks/useStoryState';
 import type { PhotoFeature } from '../../types/story';
 import { WHEREGROUP_COLORS } from '../../lib/constants';
@@ -222,6 +223,7 @@ export const StoryEditor = () => {
         <EditorMap 
           onPositionSet={handlePositionSet}
         />
+        <VersionBadge position="bottom-right" label="Editor" />
       </Box>
     </Box>
   );
