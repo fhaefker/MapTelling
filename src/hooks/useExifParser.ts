@@ -4,6 +4,7 @@ import {
   validateGPSCoordinates, 
   gpsToGeoJSON 
 } from '../utils/exifParser';
+import { log } from '../utils/logger';
 import type { ExifData } from '../types/story';
 
 interface ExifParseResult {
@@ -68,9 +69,11 @@ export const useExifParser = () => {
         const validation = validateGPSCoordinates(metadata.gps);
         
         if (validation.valid) {
-          gps = gpsToGeoJSON(metadata.gps); // ✅ Returns [lng, lat]
+          gps = gpsToGeoJSON(metadata.gps); // ✅ Gibt [lng, lat] zurück
         } else {
-          console.warn('Invalid GPS coordinates:', validation.warnings);
+          log.warn('useExifParser', 'Ungültige GPS-Koordinaten', {
+            warnings: validation.warnings
+          });
         }
         
         gpsWarnings = validation.warnings;
@@ -83,7 +86,7 @@ export const useExifParser = () => {
       };
       
     } catch (error) {
-      console.warn('EXIF parsing failed:', error);
+      log.warn('useExifParser', 'EXIF-Parsing fehlgeschlagen', { error });
       return { gps: null, exif: null };
     } finally {
       setParsing(false);

@@ -2,11 +2,28 @@
  * EXIF Metadata Parser
  * Extracts GPS, Camera, and Exposure data from photos
  * 
+ * ✅ WhereGroup Principles:
+ * - Privacy First: Lokale Verarbeitung, keine Cloud-Uploads
+ * - Standards-driven: WGS84 (EPSG:4326), GeoJSON RFC 7946
+ * - Transparenz: Strukturiertes Logging
+ * 
+ * ✅ MapComponents Compliance:
+ * - GeoJSON [lng, lat] format
+ * - Keine direkten Map-Zugriffe (Pure Data Processing)
+ * 
  * @module utils/exifParser
  * @see CONCEPT_V2_01_GPS_POSITIONING.md
  */
 
 import ExifReader from 'exifreader';
+import { log } from './logger';
+import {
+  GPS_BOUNDS,
+  ALTITUDE_LIMITS,
+  GPS_VALIDATION_MESSAGES,
+  isNullIsland,
+  isWithinBounds
+} from './gpsConstants';
 
 // ========================================
 // TYPES
@@ -68,9 +85,12 @@ export async function extractExifMetadata(file: File): Promise<ExifMetadata> {
       timestamp: extractTimestamp(tags)
     };
   } catch (error) {
-    console.error('EXIF extraction failed:', error);
+    log.error('exifParser', 'EXIF extraction failed', { 
+      fileName: file.name, 
+      error 
+    });
     
-    // Fallback: Return minimal metadata
+    // Fallback: Minimale Metadaten zurückgeben
     return {
       timestamp: new Date().toISOString()
     };
@@ -84,20 +104,20 @@ export async function extractExifMetadata(file: File): Promise<ExifMetadata> {
 /**
  * Extract GPS coordinates from EXIF tags
  * 
- * ✅ WhereGroup Privacy: No cloud uploads, local processing only
- * ✅ MapComponents: Returns [lng, lat] format for GeoJSON
+ * ✅ WhereGroup Privacy: Keine Cloud-Uploads, nur lokale Verarbeitung
+ * ✅ MapComponents: Gibt [lng, lat] Format für GeoJSON zurück
  * 
  * @param tags - ExifReader tags
  * @returns ExifGPSData | undefined
  */
 function extractGPS(tags: ExifReader.Tags): ExifGPSData | undefined {
-  // Check if GPS data exists
+  // GPS-Daten vorhanden prüfen
   if (!tags.GPSLatitude || !tags.GPSLongitude) {
-    return undefined; // ❌ No GPS available
+    return undefined; // ❌ Keine GPS-Daten verfügbar
   }
   
   try {
-    // Convert DMS (Degrees Minutes Seconds) to Decimal
+    // DMS (Degrees Minutes Seconds) → Decimal konvertieren
     const lat = convertDMSToDecimal(
       tags.GPSLatitude.description,
       tags.GPSLatitudeRef?.value?.[0] || 'N'
@@ -108,9 +128,9 @@ function extractGPS(tags: ExifReader.Tags): ExifGPSData | undefined {
       tags.GPSLongitudeRef?.value?.[0] || 'E'
     );
     
-    // Validate coordinates
+    // Koordinaten validieren
     if (!isValidCoordinate(lat, lon)) {
-      console.warn('Invalid GPS coordinates:', lat, lon);
+      log.warn('exifParser', 'Ungültige GPS-Koordinaten', { lat, lon });
       return undefined;
     }
     
@@ -122,7 +142,7 @@ function extractGPS(tags: ExifReader.Tags): ExifGPSData | undefined {
       timestamp: extractGPSTimestamp(tags)
     };
   } catch (error) {
-    console.error('GPS extraction failed:', error);
+    log.error('exifParser', 'GPS-Extraktion fehlgeschlagen', { error });
     return undefined;
   }
 }
@@ -162,20 +182,17 @@ function convertDMSToDecimal(dms: string, ref: string): number {
 }
 
 /**
- * Validate GPS coordinates
+ * GPS-Koordinaten validieren
  * 
- * @param lat - Latitude (-90 to 90)
- * @param lon - Longitude (-180 to 180)
+ * @param lat - Latitude (-90 bis 90)
+ * @param lon - Longitude (-180 bis 180)
  * @returns boolean
  */
 function isValidCoordinate(lat: number, lon: number): boolean {
   return (
     !isNaN(lat) &&
     !isNaN(lon) &&
-    lat >= -90 &&
-    lat <= 90 &&
-    lon >= -180 &&
-    lon <= 180
+    isWithinBounds(lat, lon)
   );
 }
 
@@ -284,11 +301,11 @@ function extractTimestamp(tags: ExifReader.Tags): string {
 // ========================================
 
 /**
- * Validate GPS coordinates for plausibility
+ * GPS-Koordinaten auf Plausibilität prüfen
  * 
- * ✅ Privacy: Warns about unlikely locations (e.g., 0,0 coordinates)
+ * ✅ Privacy: Warnt vor unwahrscheinlichen Positionen (z.B. 0,0 Koordinaten)
  * 
- * @param gps - GPS data to validate
+ * @param gps - Zu validierende GPS-Daten
  * @returns { valid: boolean, warnings: string[] }
  */
 export function validateGPSCoordinates(gps: ExifGPSData): {
@@ -298,25 +315,31 @@ export function validateGPSCoordinates(gps: ExifGPSData): {
   const warnings: string[] = [];
   let valid = true;
   
-  // Check for null island (0, 0)
-  if (gps.latitude === 0 && gps.longitude === 0) {
-    warnings.push('Coordinates are at (0, 0) - likely invalid GPS data');
+  // Prüfung: Null Island (0, 0)
+  if (isNullIsland(gps.latitude, gps.longitude)) {
+    warnings.push(GPS_VALIDATION_MESSAGES.NULL_ISLAND);
     valid = false;
   }
   
-  // Check for extremely high accuracy errors (>1000m)
-  if (gps.accuracy && gps.accuracy > 1000) {
-    warnings.push(`Low GPS accuracy: ${gps.accuracy}m`);
+  // Prüfung: WGS84-Grenzen
+  if (!isWithinBounds(gps.latitude, gps.longitude)) {
+    warnings.push(GPS_VALIDATION_MESSAGES.OUT_OF_BOUNDS);
+    valid = false;
   }
   
-  // Check for extreme altitudes
+  // Prüfung: Genauigkeit (>1000m = Warnung)
+  if (gps.accuracy && gps.accuracy > GPS_BOUNDS.LAT_MAX) {
+    warnings.push(GPS_VALIDATION_MESSAGES.LOW_ACCURACY(gps.accuracy));
+  }
+  
+  // Prüfung: Höhe (extrem hoch/tief)
   if (gps.altitude) {
-    if (gps.altitude > 8850) {
-      warnings.push('Altitude higher than Mt. Everest - likely invalid');
+    if (gps.altitude > ALTITUDE_LIMITS.MAX) {
+      warnings.push(GPS_VALIDATION_MESSAGES.ALTITUDE_TOO_HIGH);
       valid = false;
     }
-    if (gps.altitude < -500) {
-      warnings.push('Altitude below Dead Sea level - likely invalid');
+    if (gps.altitude < ALTITUDE_LIMITS.MIN) {
+      warnings.push(GPS_VALIDATION_MESSAGES.ALTITUDE_TOO_LOW);
       valid = false;
     }
   }
