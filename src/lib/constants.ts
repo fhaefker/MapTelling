@@ -2,8 +2,9 @@
  * MapTelling Constants
  * 
  * ✅ WhereGroup-Prinzip: Configuration over Code
+ * ✅ MapComponents-Pattern: Namespace-Prefix
  * 
- * @version 2.0
+ * @version 2.1
  */
 
 /**
@@ -25,45 +26,6 @@ export const WHEREGROUP_WMS_URL =
 export const WHEREGROUP_HQ: [number, number] = [7.1, 50.73];
 
 /**
- * Default Kamera-Einstellungen
- */
-export const DEFAULT_CAMERA = {
-  zoom: 14,
-  bearing: 0,
-  pitch: 0,
-  duration: 2000,
-  easing: 'easeInOut' as const
-};
-
-/**
- * Upload Limits
- */
-export const UPLOAD_LIMITS = {
-  maxSizeMB: 10,
-  maxFiles: 50,
-  allowedTypes: ['image/jpeg', 'image/png', 'image/webp']
-};
-
-/**
- * Thumbnail Settings
- */
-export const THUMBNAIL_SETTINGS = {
-  size: 400,
-  quality: 0.7,
-  previewSize: 800,
-  previewQuality: 0.8
-};
-
-/**
- * Map Settings
- */
-export const MAP_SETTINGS = {
-  maxZoom: 18,
-  minZoom: 1,
-  defaultZoom: 10
-};
-
-/**
  * WhereGroup Color Palette
  */
 export const WHEREGROUP_COLORS = {
@@ -79,31 +41,82 @@ export const WHEREGROUP_COLORS = {
     light: '#CCCCCC'
   },
   white: '#FFFFFF'
-};
+} as const;
 
 /**
- * Animation Durations
+ * Default Kamera-Einstellungen
+ */
+export const DEFAULT_CAMERA = {
+  zoom: 14,
+  bearing: 0,
+  pitch: 0,
+  duration: 2000,
+  easing: 'easeInOut' as const
+} as const;
+
+/**
+ * Upload Limits
+ */
+export const UPLOAD_LIMITS = {
+  maxSizeMB: 10,
+  maxFiles: 50,
+  allowedTypes: ['image/jpeg', 'image/png', 'image/webp']
+} as const;
+
+/**
+ * Thumbnail Settings
+ */
+export const THUMBNAIL_SETTINGS = {
+  size: 400,
+  quality: 0.8,
+  maxSizeMB: 1
+} as const;
+
+/**
+ * Map Settings
+ */
+export const MAP_SETTINGS = {
+  mapId: 'main',
+  minZoom: 1,
+  maxZoom: 18,
+  defaultZoom: 10
+} as const;
+
+/**
+ * Animation Durations (ms)
  */
 export const ANIMATION = {
   cameraFly: 2000,
   uiFade: 300,
   cardSlide: 400
-};
+} as const;
 
 /**
- * Layer IDs (mit Namespace)
+ * Layer IDs (mit "maptelling-" Namespace-Prefix)
+ * 
+ * ✅ MapComponents-Pattern: Verhindert ID-Kollisionen
  */
 export const LAYER_IDS = {
-  wmsBackground: 'wms-background',
-  photoMarkers: 'maptelling-photo-markers',
-  photoMarkersGlow: 'maptelling-photo-markers-glow',
-  photoLabels: 'maptelling-photo-labels'
-};
+  // WMS Basemap
+  wmsSource: 'maptelling-wms-source',
+  wmsLayer: 'maptelling-wms-layer',
+  
+  // Photo Markers
+  photoSource: 'maptelling-photo-source',
+  photoMarkersLayer: 'maptelling-photo-markers',
+  photoMarkersGlowLayer: 'maptelling-photo-markers-glow',
+  photoLabelsLayer: 'maptelling-photo-labels',
+  
+  // Active State (Highlight)
+  activePhotoLayer: 'maptelling-active-photo',
+  activePhotoHaloLayer: 'maptelling-active-photo-halo'
+} as const;
 
 /**
- * Source IDs (mit Namespace)
+ * Accessibility Settings
  */
-export const SOURCE_IDS = {
-  wms: 'wms-wheregroup',
-  photos: 'maptelling-photos'
-};
+export const ACCESSIBILITY = {
+  reducedMotionDuration: 0,
+  focusOutlineWidth: 2,
+  minTouchTarget: 44  // px (WCAG 2.1 Level AA)
+} as const;
