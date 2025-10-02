@@ -1,42 +1,66 @@
 import "./App.css";
-import { MapComponentsProvider, MapLibreMap } from "@mapcomponents/react-maplibre";
+import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
+import { getTheme } from "@mapcomponents/react-maplibre";
+import { ThemeProvider, Box, AppBar, Toolbar, Typography, Button } from "@mui/material";
+import { ErrorBoundary } from "./components/shared/ErrorBoundary";
+import { StoryViewer } from "./components/viewer/StoryViewer";
+import { StoryEditor } from "./components/editor/StoryEditor";
+import { WHEREGROUP_COLORS } from "./lib/constants";
 
+/**
+ * MapTelling App
+ * 
+ * ✅ MapComponents Compliant:
+ * - Theme Integration via getTheme()
+ * - Single ThemeProvider wrapper
+ * 
+ * ✅ WhereGroup Principles:
+ * - WhereGroup WMS als Basemap
+ * - Configuration over Code
+ * - Privacy by Design (local storage)
+ * - Router for multi-page navigation
+ * 
+ * ✅ Architecture:
+ * - Error Boundary for global error handling
+ * - React Router for /viewer and /editor routes
+ * 
+ * @version 4.0
+ */
 function App() {
-  // WhereGroup WMS Demo Service
-  const wmsUrl = "https://osm-demo.wheregroup.com/service?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&FORMAT=image%2Fpng&TRANSPARENT=true&LAYERS=osm&CRS=EPSG%3A3857&STYLES=&WIDTH=256&HEIGHT=256&BBOX={bbox-epsg-3857}";
+  // ✅ MapComponents Theme Integration
+  const theme = getTheme('light');
   
   return (
-    <MapComponentsProvider>
-      <MapLibreMap
-        mapId="main"
-        options={{
-          style: {
-            version: 8,
-            sources: {
-              "wms-source": {
-                type: "raster",
-                tiles: [wmsUrl],
-                tileSize: 256
-              }
-            },
-            layers: [{
-              id: "wms-layer",
-              type: "raster",
-              source: "wms-source"
-            }]
-          },
-          center: [7.1, 50.73], // Bonn, WhereGroup HQ
-          zoom: 10,
-        }}
-        style={{ 
-          position: "absolute", 
-          top: 0, 
-          bottom: 0, 
-          left: 0, 
-          right: 0 
-        }}
-      />
-    </MapComponentsProvider>
+    <ErrorBoundary>
+      <ThemeProvider theme={theme}>
+        <BrowserRouter basename="/MapTelling">
+          <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
+            {/* Navigation Bar */}
+            <AppBar position="static" sx={{ bgcolor: WHEREGROUP_COLORS.blue.primary }}>
+              <Toolbar>
+                <Typography variant="h6" sx={{ flexGrow: 1 }}>
+                  MapTelling
+                </Typography>
+                <Button color="inherit" component={Link} to="/">
+                  Viewer
+                </Button>
+                <Button color="inherit" component={Link} to="/editor">
+                  Editor
+                </Button>
+              </Toolbar>
+            </AppBar>
+
+            {/* Routes */}
+            <Box sx={{ flex: 1, overflow: 'hidden' }}>
+              <Routes>
+                <Route path="/" element={<StoryViewer />} />
+                <Route path="/editor" element={<StoryEditor />} />
+              </Routes>
+            </Box>
+          </Box>
+        </BrowserRouter>
+      </ThemeProvider>
+    </ErrorBoundary>
   );
 }
 

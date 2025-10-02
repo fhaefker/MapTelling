@@ -12,9 +12,17 @@
     "deploy": "npm run build"
   },
   "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
     "@mapcomponents/react-maplibre": "^1.6.0",
+    "@mui/icons-material": "^7.3.3",
+    "@mui/material": "^7.3.2",
+    "browser-image-compression": "^2.0.2",
+    "exifreader": "^4.32.0",
+    "idb": "^8.0.3",
     "react": "^19.1.1",
-    "react-dom": "^19.1.1"
+    "react-dom": "^19.1.1",
+    "react-router-dom": "^7.9.3"
   },
   "devDependencies": {
     "@types/react": "^19.1.13",
