@@ -1,4 +1,6 @@
-import { Box, Typography, Paper } from '@mui/material';
+import { Box, Typography, Paper, Button, Stack } from '@mui/material';
+import PlayArrowIcon from '@mui/icons-material/PlayArrow';
+import MapIcon from '@mui/icons-material/Map';
 import { MapComponentsProvider, MapLibreMap } from '@mapcomponents/react-maplibre';
 import { PhotoMarkerLayer } from '../map/PhotoMarkerLayer';
 import { StoryPanel } from './StoryPanel';
@@ -6,6 +8,8 @@ import { LoadingSpinner } from '../shared/LoadingSpinner';
 import { useStoryState } from '../../hooks/useStoryState';
 import { useScrollSync } from '../../hooks/useScrollSync';
 import { useKeyboardNav } from '../../hooks/useKeyboardNav';
+import { useStoryMode } from '../../hooks/useStoryMode';
+import { useInitialView } from '../../hooks/useInitialView';
 import type { PhotoStory } from '../../types/story';
 import { 
   WHEREGROUP_WMS_URL, 
@@ -34,23 +38,80 @@ const StoryViewerContent = ({
   activeIndex, 
   setActiveIndex 
 }: StoryViewerContentProps) => {
+  // ✅ Story Mode State
+  const { isStoryMode, isOverviewMode, startStory, returnToOverview } = useStoryMode();
+  
+  // ✅ Initial View (BBox on load)
+  useInitialView({
+    mapId: MAP_SETTINGS.mapId,
+    photos: story.features,
+    padding: 10
+  });
+  
   // ✅ CRITICAL: These hooks are NOW inside MapComponentsProvider
   const { scrollToPhoto } = useScrollSync({
     mapId: MAP_SETTINGS.mapId,
     photos: story.features,
     activeIndex,
-    onPhotoChange: setActiveIndex
+    onPhotoChange: setActiveIndex,
+    enabled: isStoryMode // ✅ Nur aktiv im Story-Modus!
   });
   
   useKeyboardNav({
     photos: story.features,
     activeIndex,
     onNavigate: setActiveIndex,
-    enabled: true
+    enabled: isStoryMode // ✅ Nur aktiv im Story-Modus!
   });
 
   return (
     <Box sx={{ height: '100vh', width: '100vw', display: 'flex' }}>
+      {/* Floating Controls */}
+      <Box
+        sx={{
+          position: 'absolute',
+          top: 16,
+          right: 16,
+          zIndex: 2000
+        }}
+      >
+        <Stack spacing={1}>
+          {isOverviewMode && (
+            <Button
+              variant="contained"
+              startIcon={<PlayArrowIcon />}
+              onClick={startStory}
+              size="large"
+              sx={{
+                bgcolor: 'primary.main',
+                '&:hover': {
+                  bgcolor: 'primary.dark'
+                }
+              }}
+            >
+              Story-Modus starten 🎬
+            </Button>
+          )}
+          
+          {isStoryMode && (
+            <Button
+              variant="contained"
+              startIcon={<MapIcon />}
+              onClick={returnToOverview}
+              size="large"
+              sx={{
+                bgcolor: 'secondary.main',
+                '&:hover': {
+                  bgcolor: 'secondary.dark'
+                }
+              }}
+            >
+              Zurück zur Übersicht
+            </Button>
+          )}
+        </Stack>
+      </Box>
+    
       {/* Story Panel (Left Sidebar) */}
       <Paper
         elevation={3}
@@ -79,6 +140,10 @@ const StoryViewerContent = ({
           photos={story.features}
           activeIndex={activeIndex}
           onPhotoClick={(index) => {
+            // Auto-activate Story mode on click
+            if (isOverviewMode) {
+              startStory();
+            }
             setActiveIndex(index);
             scrollToPhoto(index);
           }}
@@ -126,8 +191,12 @@ const StoryViewerContent = ({
           <PhotoMarkerLayer
             mapId={MAP_SETTINGS.mapId}
             photos={story.features}
-            activeIndex={activeIndex}
+            activeIndex={isStoryMode ? activeIndex : -1} // -1 = keine Hervorhebung in Overview
             onPhotoClick={(index) => {
+              // Auto-activate Story mode on marker click
+              if (isOverviewMode) {
+                startStory();
+              }
               setActiveIndex(index);
               scrollToPhoto(index);
             }}

@@ -9,6 +9,7 @@ interface UseScrollSyncOptions {
   onPhotoChange: (index: number) => void;
   threshold?: number;              // Default: 0.5
   rootMargin?: string;             // Default: '-20% 0px'
+  enabled?: boolean;               // Default: true (✅ NEW: Story-Modus Toggle)
 }
 
 /**
@@ -46,7 +47,8 @@ export const useScrollSync = ({
   photos,
   onPhotoChange,
   threshold = 0.5,
-  rootMargin = '-20% 0px'
+  rootMargin = '-20% 0px',
+  enabled = true // ✅ Default: immer aktiv
 }: UseScrollSyncOptions) => {
   const { map, mapIsReady } = useMap({ mapId });
   const observerRef = useRef<IntersectionObserver | null>(null);
@@ -59,7 +61,15 @@ export const useScrollSync = ({
   
   // Intersection Observer Setup
   useEffect(() => {
-    if (!mapIsReady || !map?.map || photos.length === 0) return;
+    // ✅ Nur aktiv wenn enabled
+    if (!enabled || !mapIsReady || !map?.map || photos.length === 0) {
+      // Cleanup existing observer
+      if (observerRef.current) {
+        observerRef.current.disconnect();
+        observerRef.current = null;
+      }
+      return;
+    }
     
     observerRef.current = new IntersectionObserver(
       (entries) => {
@@ -99,7 +109,7 @@ export const useScrollSync = ({
     return () => {
       observerRef.current?.disconnect();
     };
-  }, [mapIsReady, map, photos, onPhotoChange, threshold, rootMargin]);
+  }, [enabled, mapIsReady, map, photos, onPhotoChange, threshold, rootMargin]);
   
   // Programmatisches Scrollen (von Map-Click)
   const scrollToPhoto = useCallback((index: number) => {
