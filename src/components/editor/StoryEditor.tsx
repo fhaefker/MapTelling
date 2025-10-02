@@ -145,7 +145,7 @@ export const StoryEditor = () => {
   };
 
   return (
-    <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'row', overflow: 'hidden' }}>
+    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'row', overflow: 'hidden' }}>
       {/* Left Panel - Editor */}
       <Box sx={{ width: `${sidebarWidth}px`, overflow: 'auto', p: 3, bgcolor: '#f5f5f5', borderRight: '1px solid #ddd' }}>
         <Stack spacing={3}>

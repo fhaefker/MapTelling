@@ -70,7 +70,7 @@ const StoryViewerContent = ({
   });
 
   return (
-    <Box sx={{ height: '100vh', width: '100vw', display: 'flex' }}>
+    <Box sx={{ height: '100%', width: '100%', display: 'flex', position: 'relative' }}>
       {/* Floating Controls */}
       <Box
         sx={{
@@ -163,7 +163,7 @@ const StoryViewerContent = ({
       </Box>
     
       {/* Map (Fullscreen) */}
-      <Box sx={{ width: '100vw', height: '100vh', position: 'relative' }}>
+      <Box sx={{ width: '100%', height: '100%', position: 'relative' }}>
         <MapLibreMap
           mapId={MAP_SETTINGS.mapId}
           options={{
