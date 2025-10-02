@@ -59,7 +59,7 @@ export const useScrollSync = ({
   
   // Intersection Observer Setup
   useEffect(() => {
-    if (!mapIsReady || !map || photos.length === 0) return;
+    if (!mapIsReady || !map?.map || photos.length === 0) return;
     
     observerRef.current = new IntersectionObserver(
       (entries) => {
@@ -68,7 +68,7 @@ export const useScrollSync = ({
             const index = parseInt(entry.target.getAttribute('data-index') || '0', 10);
             const photo = photos[index];
             
-            if (!photo) return;
+            if (!photo || !map?.map) return;
             
             // ✅ MapLibre flyTo mit Accessibility-Support
             map.map.flyTo({
