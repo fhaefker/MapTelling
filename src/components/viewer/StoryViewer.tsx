@@ -1,18 +1,17 @@
-import { Box, Typography, Paper, Button, Stack, ToggleButtonGroup, ToggleButton, Tooltip } from '@mui/material';
+import { Box, Typography, Button, Stack, ToggleButtonGroup, ToggleButton, Tooltip } from '@mui/material';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import MapIcon from '@mui/icons-material/Map';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
 import ZoomInIcon from '@mui/icons-material/ZoomIn';
 import { MapComponentsProvider, MapLibreMap } from '@mapcomponents/react-maplibre';
 import { PhotoMarkerLayer } from '../map/PhotoMarkerLayer';
-import { StoryPanel } from './StoryPanel';
+import { FloatingPhotoCard } from './FloatingPhotoCard';
 import { LoadingSpinner } from '../shared/LoadingSpinner';
 import { ShareButton } from '../shared/ShareButton';
 import { VersionBadge } from '../shared/VersionBadge';
 import { MapWheelController } from './MapWheelController';
 import { MapTouchController } from './MapTouchController';
 import { useStoryState } from '../../hooks/useStoryState';
-import { useScrollSync } from '../../hooks/useScrollSync';
 import { useKeyboardNav } from '../../hooks/useKeyboardNav';
 import { useStoryMode } from '../../hooks/useStoryMode';
 import { useInitialView } from '../../hooks/useInitialView';
@@ -62,15 +61,7 @@ const StoryViewerContent = ({
     padding: 10
   });
   
-  // ✅ CRITICAL: These hooks are NOW inside MapComponentsProvider
-  const { scrollToPhoto } = useScrollSync({
-    mapId: MAP_SETTINGS.mapId,
-    photos: story.features,
-    activeIndex,
-    onPhotoChange: setActiveIndex,
-    enabled: isStoryMode // ✅ Nur aktiv im Story-Modus!
-  });
-  
+  // ✅ Keyboard Navigation (nur im Story-Modus)
   useKeyboardNav({
     photos: story.features,
     activeIndex,
@@ -171,46 +162,8 @@ const StoryViewerContent = ({
         </Stack>
       </Box>
     
-      {/* Story Panel (Left Sidebar) */}
-      <Paper
-        elevation={3}
-        sx={{
-          width: 400,
-          height: '100%',
-          flexShrink: 0,
-          zIndex: 1000
-        }}
-      >
-        <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}>
-          <Typography variant="h5" component="h1">
-            {story.metadata.title}
-          </Typography>
-          {story.metadata.description && (
-            <Typography variant="body2" color="text.secondary">
-              {story.metadata.description}
-            </Typography>
-          )}
-          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
-            {story.features.length} Foto{story.features.length !== 1 ? 's' : ''}
-          </Typography>
-        </Box>
-        
-        <StoryPanel
-          photos={story.features}
-          activeIndex={activeIndex}
-          onPhotoClick={(index) => {
-            // Auto-activate Story mode on click
-            if (isOverviewMode) {
-              startStory();
-            }
-            setActiveIndex(index);
-            scrollToPhoto(index);
-          }}
-        />
-      </Paper>
-      
-      {/* Map (Right) */}
-      <Box sx={{ flex: 1, position: 'relative' }}>
+      {/* Map (Fullscreen) */}
+      <Box sx={{ width: '100vw', height: '100vh', position: 'relative' }}>
         <MapLibreMap
           mapId={MAP_SETTINGS.mapId}
           options={{
@@ -277,8 +230,19 @@ const StoryViewerContent = ({
                 startStory();
               }
               setActiveIndex(index);
-              scrollToPhoto(index);
             }}
+          />
+        )}
+        
+        {/* Floating Photo Card (nur im Story-Modus) */}
+        {isStoryMode && story.features.length > 0 && (
+          <FloatingPhotoCard
+            photo={story.features[activeIndex]}
+            photoIndex={activeIndex}
+            totalPhotos={story.features.length}
+            onNext={() => setActiveIndex(Math.min(activeIndex + 1, story.features.length - 1))}
+            onPrevious={() => setActiveIndex(Math.max(activeIndex - 1, 0))}
+            onClose={returnToOverview}
           />
         )}
         

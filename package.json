@@ -1,7 +1,7 @@
 {
   "name": "maptelling-minimal",
   "private": false,
-  "version": "2.1.2",
+  "version": "2.2.0",
   "homepage": "https://fhaefker.github.io/MapTelling",
   "type": "module",
   "scripts": {
