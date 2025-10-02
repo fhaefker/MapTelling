@@ -167,6 +167,7 @@ export const StoryEditor = () => {
               </Typography>
               <PhotoList
                 photos={story.features}
+                mapId="editor-map"
                 onPhotoUpdate={updatePhoto}
                 onPhotoRemove={removePhoto}
                 onPhotosReorder={reorderPhotos}

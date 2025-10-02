@@ -8,6 +8,8 @@
  * @standard OGC GeoJSON RFC 7946
  */
 
+import type { CameraConfig } from './camera';
+
 /**
  * Photo Story als GeoJSON FeatureCollection
  */
@@ -88,7 +90,7 @@ export interface PhotoProperties {
   
   // Kamera-Animation Settings
   /** MapLibre Kamera-Einstellungen */
-  camera: CameraSettings;
+  camera: CameraConfig;
   
   // EXIF Metadaten (optional)
   /** EXIF-Daten falls vorhanden */
@@ -99,25 +101,11 @@ export interface PhotoProperties {
   positionSource: "exif" | "manual";
 }
 
+// CameraSettings deprecated - use CameraConfig from './camera' instead
 /**
- * MapLibre Kamera-Einstellungen
+ * @deprecated Use CameraConfig from './camera' instead
  */
-export interface CameraSettings {
-  /** Zoom-Level (1-22, empfohlen: 12-15) */
-  zoom: number;
-  
-  /** Rotation in Grad (0-360, optional) */
-  bearing?: number;
-  
-  /** Neigung in Grad (0-60, optional) */
-  pitch?: number;
-  
-  /** Animations-Dauer in ms (default: 2000) */
-  duration?: number;
-  
-  /** Easing-Funktion (default: "easeInOut") */
-  easing?: "linear" | "easeInOut" | "easeOut";
-}
+export type CameraSettings = CameraConfig;
 
 /**
  * EXIF Metadaten (ISO EXIF Standard)
