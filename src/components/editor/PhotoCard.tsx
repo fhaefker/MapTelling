@@ -200,11 +200,25 @@ export const PhotoCard: React.FC<PhotoCardProps> = ({
                   }
                 }}
                 aria-label="Position auf Karte setzen"
-                title="Position auf Karte setzen"
               >
                 <RoomIcon />
               </IconButton>
             )}
+            
+            {/* Löschen Button */}
+            <IconButton
+              size="small"
+              onClick={onRemove}
+              sx={{ 
+                color: 'error.main',
+                '&:hover': {
+                  bgcolor: 'rgba(211, 47, 47, 0.08)'
+                }
+              }}
+              aria-label="Foto löschen"
+            >
+              <DeleteIcon />
+            </IconButton>
 
             {/* Kamera-Einstellungen Toggle */}
             <IconButton

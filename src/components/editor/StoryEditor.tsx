@@ -1,6 +1,8 @@
 import { Box, Button, TextField, Typography, Paper, Stack, Divider } from '@mui/material';
+import { useState, useRef, useEffect } from 'react';
 import SaveIcon from '@mui/icons-material/Save';
 import DownloadIcon from '@mui/icons-material/Download';
+import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
 import { PhotoUploader } from './PhotoUploader';
 import { PhotoList } from './PhotoList';
 import { EditorMap } from './EditorMap';
@@ -44,6 +46,43 @@ export const StoryEditor = () => {
     updateMetadata,
     exportStory
   } = useStoryState();
+  
+  // ✅ Resizable Sidebar State
+  const [sidebarWidth, setSidebarWidth] = useState(400); // px
+  const isResizing = useRef(false);
+  
+  // Mouse handlers for resize
+  const handleMouseDown = () => {
+    isResizing.current = true;
+    document.body.style.cursor = 'ew-resize';
+    document.body.style.userSelect = 'none';
+  };
+  
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isResizing.current) return;
+      
+      // Min: 300px, Max: 600px
+      const newWidth = Math.max(300, Math.min(600, e.clientX));
+      setSidebarWidth(newWidth);
+    };
+    
+    const handleMouseUp = () => {
+      if (isResizing.current) {
+        isResizing.current = false;
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+      }
+    };
+    
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+    
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, []);
 
   const handlePhotoUploaded = (feature: PhotoFeature) => {
     // Set correct order (last position)
@@ -108,7 +147,7 @@ export const StoryEditor = () => {
   return (
     <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'row', overflow: 'hidden' }}>
       {/* Left Panel - Editor */}
-      <Box sx={{ width: '400px', overflow: 'auto', p: 3, bgcolor: '#f5f5f5', borderRight: '1px solid #ddd' }}>
+      <Box sx={{ width: `${sidebarWidth}px`, overflow: 'auto', p: 3, bgcolor: '#f5f5f5', borderRight: '1px solid #ddd' }}>
         <Stack spacing={3}>
           {/* Header */}
           <Paper elevation={2} sx={{ p: 3 }}>
@@ -216,6 +255,33 @@ export const StoryEditor = () => {
           </Typography>
         </Paper>
         </Stack>
+      </Box>
+      
+      {/* Resize Handle */}
+      <Box
+        onMouseDown={handleMouseDown}
+        sx={{
+          width: '6px',
+          cursor: 'ew-resize',
+          bgcolor: '#ddd',
+          '&:hover': {
+            bgcolor: WHEREGROUP_COLORS.orange,
+            transition: 'background-color 0.2s'
+          },
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          position: 'relative',
+          zIndex: 10
+        }}
+      >
+        <DragIndicatorIcon 
+          sx={{ 
+            color: 'white', 
+            fontSize: 20,
+            transform: 'rotate(90deg)'
+          }} 
+        />
       </Box>
 
       {/* Right Panel - Map */}
