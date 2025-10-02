@@ -97,11 +97,20 @@ export const PhotoList = ({
                     size="small" 
                     sx={{ bgcolor: WHEREGROUP_COLORS.blue.primary, color: 'white' }}
                   />
-                  {photo.properties.positionSource === 'exif' && (
+                  {photo.properties.positionSource === 'exif' ? (
                     <Chip 
-                      label="📍 GPS" 
+                      label="✅ GPS" 
                       size="small" 
                       color="success"
+                      variant="outlined"
+                    />
+                  ) : (
+                    <Chip 
+                      label="⚠️ Manuell" 
+                      size="small" 
+                      color="warning"
+                      variant="outlined"
+                      title="Position wurde manuell gesetzt"
                     />
                   )}
                   {photo.properties.exif?.camera && (
@@ -109,6 +118,7 @@ export const PhotoList = ({
                       label={`📷 ${photo.properties.exif.camera}`} 
                       size="small" 
                       variant="outlined"
+                      sx={{ fontSize: '0.7rem' }}
                     />
                   )}
                 </Box>

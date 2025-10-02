@@ -1,17 +1,25 @@
 import { useState, useCallback } from 'react';
-import ExifReader from 'exifreader';
-import { convertDMSToDD } from '../lib/exif-utils';
+import { 
+  extractExifMetadata, 
+  validateGPSCoordinates, 
+  gpsToGeoJSON 
+} from '../utils/exifParser';
 import type { ExifData } from '../types/story';
 
 interface ExifParseResult {
   gps: [number, number] | null;
   exif: ExifData | null;
+  gpsWarnings?: string[];
 }
 
 /**
  * useExifParser Hook
  * 
  * Extracts GPS coordinates and EXIF metadata from image files.
+ * Uses the new exifParser utility with comprehensive validation.
+ * 
+ * ✅ WhereGroup: Privacy by Design (local processing)
+ * ✅ MapComponents: Returns GeoJSON [lng, lat] format
  * 
  * @returns {Object} Parser functions and state
  * @returns {Function} parseExif - Parses EXIF data from file
@@ -22,6 +30,9 @@ interface ExifParseResult {
  * const result = await parseExif(file);
  * if (result.gps) {
  *   console.log('Coordinates:', result.gps); // [lng, lat]
+ *   if (result.gpsWarnings?.length > 0) {
+ *     console.warn('GPS Warnings:', result.gpsWarnings);
+ *   }
  * }
  */
 export const useExifParser = () => {
@@ -31,55 +42,45 @@ export const useExifParser = () => {
     setParsing(true);
     
     try {
-      const tags = await ExifReader.load(file);
+      // Extract all EXIF metadata
+      const metadata = await extractExifMetadata(file);
       
-      // GPS-Koordinaten extrahieren
+      // Convert to legacy ExifData format (for compatibility)
+      const exif: ExifData | null = metadata.camera || metadata.exposure ? {
+        camera: metadata.camera 
+          ? `${metadata.camera.make} ${metadata.camera.model}`.trim()
+          : undefined,
+        lens: metadata.camera?.lens,
+        dateTime: metadata.timestamp,
+        gpsAltitude: metadata.gps?.altitude,
+        gpsAccuracy: metadata.gps?.accuracy,
+        focalLength: metadata.exposure?.focalLength,
+        aperture: metadata.exposure?.fNumber,
+        shutterSpeed: metadata.exposure?.exposureTime,
+        iso: metadata.exposure?.iso
+      } : null;
+      
+      // GPS Handling with Validation
       let gps: [number, number] | null = null;
-      if (tags.GPSLatitude && tags.GPSLongitude) {
-        const lat = convertDMSToDD(tags.GPSLatitude.description || '');
-        const lng = convertDMSToDD(tags.GPSLongitude.description || '');
+      let gpsWarnings: string[] = [];
+      
+      if (metadata.gps) {
+        const validation = validateGPSCoordinates(metadata.gps);
         
-        // Hemisphären berücksichtigen (N/S, E/W)
-        const latRef = tags.GPSLatitudeRef?.value?.[0];
-        const lngRef = tags.GPSLongitudeRef?.value?.[0];
-        
-        const finalLat = latRef === 'S' ? -lat : lat;
-        const finalLng = lngRef === 'W' ? -lng : lng;
-        
-        // Validierung: Koordinaten im gültigen Bereich?
-        if (
-          finalLat >= -90 && finalLat <= 90 &&
-          finalLng >= -180 && finalLng <= 180
-        ) {
-          gps = [finalLng, finalLat]; // GeoJSON: [lng, lat]
+        if (validation.valid) {
+          gps = gpsToGeoJSON(metadata.gps); // ✅ Returns [lng, lat]
+        } else {
+          console.warn('Invalid GPS coordinates:', validation.warnings);
         }
+        
+        gpsWarnings = validation.warnings;
       }
       
-      // EXIF-Metadaten extrahieren
-      const exif: ExifData = {
-        camera: tags.Model?.description,
-        lens: tags.LensModel?.description,
-        dateTime: tags.DateTime?.description,
-        gpsAltitude: tags.GPSAltitude?.description 
-          ? parseFloat(tags.GPSAltitude.description)
-          : undefined,
-        gpsAccuracy: tags.GPSHPositioningError?.description
-          ? parseFloat(tags.GPSHPositioningError.description)
-          : undefined,
-        orientation: tags.Orientation?.value,
-        focalLength: tags.FocalLength?.description
-          ? parseFloat(tags.FocalLength.description)
-          : undefined,
-        aperture: tags.FNumber?.description
-          ? parseFloat(tags.FNumber.description)
-          : undefined,
-        shutterSpeed: tags.ExposureTime?.description,
-        iso: tags.ISOSpeedRatings?.description
-          ? parseInt(tags.ISOSpeedRatings.description)
-          : undefined
+      return { 
+        gps, 
+        exif,
+        gpsWarnings: gpsWarnings.length > 0 ? gpsWarnings : undefined
       };
-      
-      return { gps, exif };
       
     } catch (error) {
       console.warn('EXIF parsing failed:', error);

@@ -203,15 +203,46 @@ export const PhotoUploader = ({
 
         {uploadResult && !uploading && (
           <Alert severity="success" sx={{ width: '100%' }}>
-            ✅ Foto erfolgreich hochgeladen!
-            {uploadResult.coordinates && (
-              <Typography variant="caption" display="block" mt={1}>
-                📍 GPS-Koordinaten gefunden: {uploadResult.coordinates[1].toFixed(4)}, {uploadResult.coordinates[0].toFixed(4)}
-              </Typography>
+            <Typography variant="body2" fontWeight="bold">
+              ✅ Foto erfolgreich hochgeladen!
+            </Typography>
+            
+            {uploadResult.coordinates ? (
+              <Stack spacing={0.5} mt={1}>
+                <Typography variant="caption" display="flex" alignItems="center" gap={0.5}>
+                  <span style={{ color: '#4caf50', fontSize: '1.2em' }}>✅</span>
+                  <strong>GPS-Position gefunden</strong>
+                </Typography>
+                <Typography variant="caption" color="text.secondary" ml={2.5}>
+                  📍 {uploadResult.coordinates[1].toFixed(6)}°, {uploadResult.coordinates[0].toFixed(6)}°
+                </Typography>
+                {uploadResult.exif?.gpsAltitude && (
+                  <Typography variant="caption" color="text.secondary" ml={2.5}>
+                    ⛰️  Höhe: {uploadResult.exif.gpsAltitude.toFixed(0)}m
+                  </Typography>
+                )}
+                {uploadResult.exif?.gpsAccuracy && (
+                  <Typography variant="caption" color="text.secondary" ml={2.5}>
+                    🎯 Genauigkeit: ±{uploadResult.exif.gpsAccuracy.toFixed(0)}m
+                  </Typography>
+                )}
+              </Stack>
+            ) : (
+              <Stack spacing={0.5} mt={1}>
+                <Typography variant="caption" display="flex" alignItems="center" gap={0.5}>
+                  <span style={{ color: '#ff9800', fontSize: '1.2em' }}>⚠️</span>
+                  <strong>Keine GPS-Daten</strong>
+                </Typography>
+                <Typography variant="caption" color="text.secondary" ml={2.5}>
+                  Position muss manuell gesetzt werden
+                </Typography>
+              </Stack>
             )}
+            
             {uploadResult.exif?.camera && (
-              <Typography variant="caption" display="block">
-                📷 Kamera: {uploadResult.exif.camera}
+              <Typography variant="caption" display="block" mt={1} color="text.secondary">
+                📷 {uploadResult.exif.camera}
+                {uploadResult.exif.lens && ` • ${uploadResult.exif.lens}`}
               </Typography>
             )}
           </Alert>
