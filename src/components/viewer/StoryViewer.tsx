@@ -7,6 +7,7 @@ import { MapComponentsProvider, MapLibreMap } from '@mapcomponents/react-maplibr
 import { PhotoMarkerLayer } from '../map/PhotoMarkerLayer';
 import { StoryPanel } from './StoryPanel';
 import { LoadingSpinner } from '../shared/LoadingSpinner';
+import { ShareButton } from '../shared/ShareButton';
 import { MapWheelController } from './MapWheelController';
 import { MapTouchController } from './MapTouchController';
 import { useStoryState } from '../../hooks/useStoryState';
@@ -15,6 +16,7 @@ import { useKeyboardNav } from '../../hooks/useKeyboardNav';
 import { useStoryMode } from '../../hooks/useStoryMode';
 import { useInitialView } from '../../hooks/useInitialView';
 import { useMapScrollMode } from '../../hooks/useMapScrollMode';
+import { useURLSync } from '../../hooks/useURLParams';
 import type { PhotoStory } from '../../types/story';
 import { 
   WHEREGROUP_WMS_URL, 
@@ -48,6 +50,9 @@ const StoryViewerContent = ({
   
   // ✅ Map Scroll Mode State
   const { mode: scrollMode, toggleMode } = useMapScrollMode('story');
+  
+  // ✅ URL Sync (Deep Links)
+  useURLSync(activeIndex, setActiveIndex, story.features.length);
   
   // ✅ Initial View (BBox on load)
   useInitialView({
@@ -116,6 +121,17 @@ const StoryViewerContent = ({
                 </Tooltip>
               </ToggleButton>
             </ToggleButtonGroup>
+          )}
+
+          {/* Share Button (nur im Story-Modus) */}
+          {isStoryMode && (
+            <ShareButton
+              photoIndex={activeIndex}
+              title={story.metadata.title}
+              variant="contained"
+              size="medium"
+              fullWidth
+            />
           )}
         
           {isOverviewMode && (
