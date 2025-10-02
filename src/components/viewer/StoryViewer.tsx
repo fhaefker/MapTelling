@@ -1,15 +1,20 @@
-import { Box, Typography, Paper, Button, Stack } from '@mui/material';
+import { Box, Typography, Paper, Button, Stack, ToggleButtonGroup, ToggleButton, Tooltip } from '@mui/material';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import MapIcon from '@mui/icons-material/Map';
+import MenuBookIcon from '@mui/icons-material/MenuBook';
+import ZoomInIcon from '@mui/icons-material/ZoomIn';
 import { MapComponentsProvider, MapLibreMap } from '@mapcomponents/react-maplibre';
 import { PhotoMarkerLayer } from '../map/PhotoMarkerLayer';
 import { StoryPanel } from './StoryPanel';
 import { LoadingSpinner } from '../shared/LoadingSpinner';
+import { MapWheelController } from './MapWheelController';
+import { MapTouchController } from './MapTouchController';
 import { useStoryState } from '../../hooks/useStoryState';
 import { useScrollSync } from '../../hooks/useScrollSync';
 import { useKeyboardNav } from '../../hooks/useKeyboardNav';
 import { useStoryMode } from '../../hooks/useStoryMode';
 import { useInitialView } from '../../hooks/useInitialView';
+import { useMapScrollMode } from '../../hooks/useMapScrollMode';
 import type { PhotoStory } from '../../types/story';
 import { 
   WHEREGROUP_WMS_URL, 
@@ -40,6 +45,9 @@ const StoryViewerContent = ({
 }: StoryViewerContentProps) => {
   // ✅ Story Mode State
   const { isStoryMode, isOverviewMode, startStory, returnToOverview } = useStoryMode();
+  
+  // ✅ Map Scroll Mode State
+  const { mode: scrollMode, toggleMode } = useMapScrollMode('story');
   
   // ✅ Initial View (BBox on load)
   useInitialView({
@@ -76,6 +84,40 @@ const StoryViewerContent = ({
         }}
       >
         <Stack spacing={1}>
+          {/* Scroll Mode Toggle (nur im Story-Modus) */}
+          {isStoryMode && (
+            <ToggleButtonGroup
+              value={scrollMode}
+              exclusive
+              onChange={(_, newMode) => {
+                if (newMode) toggleMode();
+              }}
+              size="small"
+              sx={{
+                bgcolor: 'background.paper',
+                boxShadow: 2
+              }}
+            >
+              <ToggleButton value="story" aria-label="Story-Scroll">
+                <Tooltip title="Mausrad navigiert Story" placement="left">
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    <MenuBookIcon fontSize="small" />
+                    <Typography variant="caption">Story</Typography>
+                  </Box>
+                </Tooltip>
+              </ToggleButton>
+              
+              <ToggleButton value="zoom" aria-label="Map-Zoom">
+                <Tooltip title="Mausrad zoomt Karte" placement="left">
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    <ZoomInIcon fontSize="small" />
+                    <Typography variant="caption">Zoom</Typography>
+                  </Box>
+                </Tooltip>
+              </ToggleButton>
+            </ToggleButtonGroup>
+          )}
+        
           {isOverviewMode && (
             <Button
               variant="contained"
@@ -184,6 +226,26 @@ const StoryViewerContent = ({
             left: 0,
             right: 0
           }}
+        />
+        
+        {/* Map Wheel Controller */}
+        <MapWheelController
+          mapId={MAP_SETTINGS.mapId}
+          photos={story.features}
+          activeIndex={activeIndex}
+          onNavigate={setActiveIndex}
+          scrollMode={scrollMode}
+          enabled={isStoryMode}
+        />
+        
+        {/* Map Touch Controller (Mobile) */}
+        <MapTouchController
+          mapId={MAP_SETTINGS.mapId}
+          photos={story.features}
+          activeIndex={activeIndex}
+          onNavigate={setActiveIndex}
+          scrollMode={scrollMode}
+          enabled={isStoryMode}
         />
         
         {/* Photo Markers */}
