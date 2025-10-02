@@ -5,4 +5,5 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   base: '/MapTelling/',
+  // Note: 404.html muss manuell nach dist/ kopiert werden oder via GitHub Actions
 })
