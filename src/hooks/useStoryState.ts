@@ -233,6 +233,12 @@ export const useStoryState = () => {
     setActiveIndex(0);
   }, []);
   
+  // Export story as JSON string
+  const exportStory = useCallback(() => {
+    if (!story) return '{}';
+    return JSON.stringify(story, null, 2);
+  }, [story]);
+  
   // Memoized GeoJSON for MapComponents (stable reference)
   const geojson = useMemo(() => {
     if (!story) return null;
@@ -254,6 +260,7 @@ export const useStoryState = () => {
     removePhoto,
     reorderPhotos,
     updateMetadata,
-    clearStory
+    clearStory,
+    exportStory
   };
 };
